@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use crate::controls::control::Control;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::WindowCanvas;
@@ -8,6 +9,7 @@ use sdl2::EventPump;
 pub struct Window {
     canvas: WindowCanvas,
     event_pump: EventPump,
+    content: Control,
 }
 
 impl Window {
@@ -30,7 +32,11 @@ impl Window {
             .unwrap();
         let event_pump = sdl_context.event_pump().map_err(|e| e.to_string()).unwrap();
 
-        Window { event_pump, canvas }
+        Window {
+            event_pump,
+            canvas,
+            content: Control::None,
+        }
     }
 
     pub fn show(&mut self) {
@@ -49,5 +55,9 @@ impl Window {
 
             self.canvas.present();
         }
+    }
+
+    pub fn set_content(&mut self, control: Control) {
+        self.content = control;
     }
 }
