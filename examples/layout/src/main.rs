@@ -6,35 +6,29 @@ fn main() {
     let mut window = Window::new();
 
     window.set_content(Stack {
-        base: BaseControl {
-            children: vec![
+        base: BaseControl::new(
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            vec![
                 Rc::new(Label {
-                    base: BaseControl {
-                        ..Default::default()
-                    },
+                    base: BaseControl::default(),
                     text: "testing".to_string(),
                 }),
                 Rc::new(Label {
-                    base: BaseControl {
-                        ..Default::default()
-                    },
+                    base: BaseControl::default(),
                     text: "testing".to_string(),
                 }),
                 Rc::new(Label {
-                    base: BaseControl {
-                        ..Default::default()
-                    },
+                    base: BaseControl::default(),
                     text: "testing".to_string(),
                 }),
                 Rc::new(Label {
-                    base: BaseControl {
-                        ..Default::default()
-                    },
+                    base: BaseControl::default(),
                     text: "everything appears to be in order".to_string(),
                 }),
             ],
-            ..Default::default()
-        },
+        ),
     });
     window.show();
 }

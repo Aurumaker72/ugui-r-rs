@@ -2,12 +2,14 @@ use crate::core::geo::{Alignment, Rect};
 use std::cell::Ref;
 use std::rc::Rc;
 
-#[derive(Clone, PartialEq, Default, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct BaseControl {
-    pub margin: Rect,
-    pub horizontal_alignment: Alignment,
-    pub vertical_alignment: Alignment,
-    pub children: Vec<Rc<Control>>,
+    margin: Rect,
+    h_align: Alignment,
+    v_align: Alignment,
+    visible: bool,
+    children: Vec<Rc<Control>>,
+    validated: bool,
 }
 
 #[derive(PartialEq, Debug)]
@@ -25,6 +27,31 @@ pub fn get_base(control: &Control) -> Option<&BaseControl> {
 }
 
 impl BaseControl {
+    pub fn default() -> Self {
+        BaseControl {
+            margin: Default::default(),
+            h_align: Default::default(),
+            v_align: Default::default(),
+            children: Default::default(),
+            visible: true,
+            validated: false,
+        }
+    }
+    pub fn new(
+        margin: Rect,
+        h_align: Alignment,
+        v_align: Alignment,
+        children: Vec<Rc<Control>>,
+    ) -> Self {
+        BaseControl {
+            margin,
+            h_align,
+            v_align,
+            children,
+            visible: true,
+            validated: false,
+        }
+    }
     pub(crate) fn get_children(&self) -> Vec<Rc<Control>> {
         let mut children = vec![];
         for child in &self.children {
