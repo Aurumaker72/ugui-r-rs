@@ -1,6 +1,6 @@
 extern crate sdl2;
 
-use crate::controls::control::Control;
+use crate::controls::control::{get_base, Control};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::WindowCanvas;
@@ -51,7 +51,9 @@ impl Window {
                     _ => {}
                 }
             }
-            // The rest of the game loop goes here...
+
+            let a = get_base(&self.content).unwrap().get_children();
+            a.iter().for_each(|x| println!("{:?}", x));
 
             self.canvas.present();
         }

@@ -31,7 +31,7 @@ impl Point {
     }
 }
 
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq, Debug)]
 pub struct Rect {
     pub x: f32,
     pub y: f32,
@@ -124,7 +124,7 @@ pub fn remap(value: f32, from1: f32, to1: f32, from2: f32, to2: f32) -> f32 {
     (value - from1) / (to1 - from1) * (to2 - from2) + from2
 }
 
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq, Debug)]
 pub enum Alignment {
     #[default]
     Start,
