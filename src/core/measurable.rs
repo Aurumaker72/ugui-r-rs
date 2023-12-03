@@ -1,4 +1,4 @@
-use crate::geo::Point;
+use crate::core::geo::Point;
 
 trait Measurable {
     fn measure() -> Point;

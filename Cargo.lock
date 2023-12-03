@@ -3,13 +3,6 @@
 version = 3
 
 [[package]]
-name = "basic"
-version = "0.1.0"
-dependencies = [
- "ugui_r_rs",
-]
-
-[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -55,14 +48,6 @@ dependencies = [
  "libc",
  "version-compare",
 ]
-
-[[package]]
-name = "ugui_controls"
-version = "0.1.0"
-
-[[package]]
-name = "ugui_core"
-version = "0.1.0"
 
 [[package]]
 name = "ugui_r_rs"

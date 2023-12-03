@@ -3,18 +3,6 @@ name = "ugui_r_rs"
 version = "0.1.0"
 edition = "2021"
 
-[workspace]
-members = [
-    "core",
-    "controls",
-    "examples/*",
-]
-
-[workspace.dependencies]
-ugui_r_rs = { version = "0.1.0", path = "." }
-ugui_core = { version = "0.1.0", path = "core" }
-ugui_controls = { version = "0.1.0", path = "controls" }
-
 [dependencies.sdl2]
 version = "0.35.2"
 default-features = false

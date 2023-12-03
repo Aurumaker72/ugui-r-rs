@@ -1,3 +1,4 @@
+use crate::core::geo::Rect;
 
 pub struct Control {
     validated: bool,
