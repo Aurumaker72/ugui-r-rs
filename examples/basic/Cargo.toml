@@ -1,0 +1,8 @@
+[package]
+name = "basic"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ugui_r_rs.workspace = true
+

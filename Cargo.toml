@@ -1,9 +1,19 @@
 [package]
-name = "ugui-r-rs"
+name = "ugui_r_rs"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = [
+    "core",
+    "controls",
+    "examples/*",
+]
+
+[workspace.dependencies]
+ugui_r_rs = { version = "0.1.0", path = "." }
+ugui_core = { version = "0.1.0", path = "core" }
+ugui_controls = { version = "0.1.0", path = "controls" }
 
 [dependencies.sdl2]
 version = "0.35.2"
