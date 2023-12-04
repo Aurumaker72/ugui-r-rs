@@ -8,17 +8,20 @@ pub struct BaseControl {
     h_align: Alignment,
     v_align: Alignment,
     visible: bool,
-    children: Vec<Rc<Control>>,
-    validated: bool,
+    children: Vec<Control>,
+    pub(crate) validated: bool,
+    // The absolute bounds, as computed by the layout engine
+    pub(crate) computed_bounds: Rect,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Control {
     None,
     Label { base: BaseControl, text: String },
     Stack { base: BaseControl },
 }
-pub fn get_base(control: &Control) -> Option<&BaseControl> {
+
+pub fn get_base(control: Control) -> Option<BaseControl> {
     match control {
         Control::None => None,
         Control::Label { base, .. } => Some(base),
@@ -35,13 +38,14 @@ impl BaseControl {
             children: Default::default(),
             visible: true,
             validated: false,
+            computed_bounds: Default::default(),
         }
     }
     pub fn new(
         margin: Rect,
         h_align: Alignment,
         v_align: Alignment,
-        children: Vec<Rc<Control>>,
+        children: Vec<Control>,
     ) -> Self {
         BaseControl {
             margin,
@@ -50,15 +54,16 @@ impl BaseControl {
             children,
             visible: true,
             validated: false,
+            computed_bounds: Default::default(),
         }
     }
-    pub(crate) fn get_children(&self) -> Vec<Rc<Control>> {
+    pub(crate) fn get_children(&self) -> Vec<Control> {
         let mut children = vec![];
         for child in &self.children {
             children.push(child.clone());
-            let grandchildren = get_base(child.as_ref()).unwrap().get_children();
+            let grandchildren = get_base(child.clone()).unwrap().get_children();
             children.extend(grandchildren);
         }
-        children
+        children.into()
     }
 }

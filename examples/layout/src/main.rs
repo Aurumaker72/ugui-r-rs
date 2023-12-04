@@ -11,22 +11,22 @@ fn main() {
             Default::default(),
             Default::default(),
             vec![
-                Rc::new(Label {
+                Label {
                     base: BaseControl::default(),
                     text: "testing".to_string(),
-                }),
-                Rc::new(Label {
+                },
+                Label {
                     base: BaseControl::default(),
                     text: "testing".to_string(),
-                }),
-                Rc::new(Label {
+                },
+                Label {
                     base: BaseControl::default(),
                     text: "testing".to_string(),
-                }),
-                Rc::new(Label {
+                },
+                Label {
                     base: BaseControl::default(),
                     text: "everything appears to be in order".to_string(),
-                }),
+                },
             ],
         ),
     });
