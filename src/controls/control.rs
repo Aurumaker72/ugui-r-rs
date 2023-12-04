@@ -65,22 +65,16 @@ impl Control {
             _ => panic!("Not implemented for {:?}", self),
         }
     }
-    pub(crate) fn compute_layout_bounds<'a>(
-        &self,
-        parent_rect: Rect,
-        font: &Font<'a, 'static>,
-    ) -> Rect {
-        let size = self.compute_desired_size(font);
+    fn get_base_layout_bounds<'a>(&self, parent_rect: Rect, font: &Font<'a, 'static>) -> Rect {
         let base = self.get_base();
+        let size = self.compute_desired_size(font);
+
         let mut base_rect = Rect {
-            x: 0.0,
-            y: 0.0,
+            x: parent_rect.x,
+            y: parent_rect.y,
             w: size.x,
             h: size.y,
         };
-        if base.h_align == Alignment::Start {
-            base_rect.x = parent_rect.x;
-        }
         if base.h_align == Alignment::Center {
             base_rect.x = parent_rect.x + parent_rect.w / 2.0 - size.x / 2.0;
         }
@@ -89,10 +83,6 @@ impl Control {
         }
         if base.h_align == Alignment::Fill {
             base_rect.w = parent_rect.w;
-        }
-
-        if base.v_align == Alignment::Start {
-            base_rect.y = parent_rect.y;
         }
         if base.v_align == Alignment::Center {
             base_rect.y = parent_rect.y + parent_rect.h / 2.0 - size.y / 2.0;
@@ -105,6 +95,34 @@ impl Control {
         }
         base_rect
     }
+
+    pub(crate) fn compute_layout_bounds<'a>(
+        &self,
+        parent_rect: Rect,
+        font: &Font<'a, 'static>,
+    ) -> Vec<Rect> {
+        let base = self.get_base();
+        let mut base_layout_bounds: Vec<Rect> = base
+            .children
+            .iter()
+            .map(|x| x.get_base_layout_bounds(parent_rect, font))
+            .collect();
+
+        match self {
+            Control::Stack { base, .. } => {
+                // Stack child layout computation:
+                // take base layout bounds and offset them by accumulated height offset
+
+                let mut h = 0.0;
+                for rect in &mut base_layout_bounds {
+                    rect.y += h;
+                    h += rect.h;
+                }
+                base_layout_bounds
+            }
+            _ => base_layout_bounds,
+        }
+    }
     pub(crate) fn render(&self, window_canvas: &mut WindowCanvas) {
         let base = self.get_base();
 
@@ -116,13 +134,16 @@ impl Control {
         }
     }
     pub(crate) fn do_layout<'a>(&mut self, parent_rect: Rect, font: &Font<'a, 'static>) {
-        let cloned = self.clone();
+        let mut cloned = self.clone();
         let mut base = self.get_base_mut();
 
         if !base.validated {
-            base.computed_bounds = cloned.compute_layout_bounds(parent_rect, font);
+            let layout_bounds = cloned.compute_layout_bounds(parent_rect, font);
+            for i in 0..base.children.len() {
+                base.children[i].get_base_mut().computed_bounds = layout_bounds[i];
+            }
+
             base.validated = true;
-            println!("computed bounds: {:?}", base.computed_bounds);
         }
 
         for child in &mut base.children {
