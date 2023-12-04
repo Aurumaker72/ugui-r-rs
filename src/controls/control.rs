@@ -1,4 +1,6 @@
 use crate::core::geo::{Alignment, Point, Rect};
+use sdl2::sys::ttf::TTF_Font;
+use sdl2::ttf::Font;
 use std::cell::Ref;
 use std::rc::Rc;
 
@@ -24,12 +26,45 @@ pub enum Control {
 impl Control {
     pub(crate) fn get_base(&mut self) -> &mut BaseControl {
         match self {
-            Control::None => panic!("Invalid control"),
             Control::Label { base, .. } => base,
             Control::Stack { base, .. } => base,
+            _ => panic!("Expected control, got none"),
         }
     }
-    pub(crate) fn desired_size(&self) -> Point {}
+    pub(crate) fn compute_desired_size<'a>(&self, font: &Font<'a, 'static>) -> Point {
+        match self {
+            Control::Label { base, text } => {
+                let size = font.size_of(text).unwrap();
+                Point {
+                    x: size.0 as f32,
+                    y: size.1 as f32,
+                }
+            }
+            Control::Stack { base, .. } => Default::default(),
+            _ => panic!("Not implemented for {:?}", self),
+        }
+    }
+    pub(crate) fn do_layout<'a>(&mut self, parent_rect: Rect, font: &Font<'a, 'static>) {
+        let cloned = self.clone();
+        let mut base = self.get_base();
+
+        if !base.validated {
+            let size = cloned.compute_desired_size(font);
+
+            base.computed_bounds = Rect {
+                x: parent_rect.x,
+                y: parent_rect.y,
+                w: size.x,
+                h: size.y,
+            };
+            println!("validated, size: {:?}", size);
+            base.validated = true
+        }
+
+        for child in &mut base.children {
+            child.do_layout(base.computed_bounds, font);
+        }
+    }
 }
 
 impl BaseControl {
@@ -69,16 +104,5 @@ impl BaseControl {
             children.extend(grandchildren);
         }
         children.into()
-    }
-
-    pub(crate) fn do_layout(&mut self, parent_rect: Rect) {
-        if !self.validated {
-            println!("layout validated");
-            self.validated = true
-        }
-
-        for child in &mut self.children {
-            child.get_base().do_layout(self.computed_bounds);
-        }
     }
 }
