@@ -1,14 +1,13 @@
 extern crate sdl2;
 
 use crate::controls::control::BaseControl;
-use crate::controls::control::{get_base, Control};
-use crate::core::layout::compute_layout_bounds;
+use crate::controls::control::Control;
+use crate::core::geo::Rect;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::WindowCanvas;
 use sdl2::EventPump;
 use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
 
 pub struct Window {
     canvas: WindowCanvas,
@@ -56,29 +55,12 @@ impl Window {
                 }
             }
 
-            let controls = get_base(self.content.clone()).unwrap().get_children();
-
-            // If a control is invalidated, its children need to be invalidated too
-            for control in controls {
-                let base = get_base(control).unwrap();
-                if !base.validated {
-                    base.get_children()
-                        .iter()
-                        .map(|x| get_base(x.clone()).unwrap())
-                        .for_each(|mut x| x.validated = false);
-                }
-            }
-            //
-            // // Recompute layout bounds of all invalidated controls, then validate them
-            // for control in controls {
-            //     let base = get_base(control).unwrap();
-            //
-            //     if !base.validated {
-            //         base.computed_bounds = compute_layout_bounds(self, &control);
-            //         base.validated = true;
-            //         println!("Validated!");
-            //     }
-            // }
+            self.content.get_base().do_layout(Rect::new(
+                0.0,
+                0.0,
+                self.canvas.window().drawable_size().0 as f32,
+                self.canvas.window().drawable_size().1 as f32,
+            ));
 
             self.canvas.present();
         }

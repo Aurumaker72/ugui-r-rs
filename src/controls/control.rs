@@ -1,4 +1,4 @@
-use crate::core::geo::{Alignment, Rect};
+use crate::core::geo::{Alignment, Point, Rect};
 use std::cell::Ref;
 use std::rc::Rc;
 
@@ -21,12 +21,15 @@ pub enum Control {
     Stack { base: BaseControl },
 }
 
-pub fn get_base(control: Control) -> Option<BaseControl> {
-    match control {
-        Control::None => None,
-        Control::Label { base, .. } => Some(base),
-        Control::Stack { base, .. } => Some(base),
+impl Control {
+    pub(crate) fn get_base(&mut self) -> &mut BaseControl {
+        match self {
+            Control::None => panic!("Invalid control"),
+            Control::Label { base, .. } => base,
+            Control::Stack { base, .. } => base,
+        }
     }
+    pub(crate) fn desired_size(&self) -> Point {}
 }
 
 impl BaseControl {
@@ -57,13 +60,25 @@ impl BaseControl {
             computed_bounds: Default::default(),
         }
     }
-    pub(crate) fn get_children(&self) -> Vec<Control> {
+
+    pub(crate) fn get_children(&mut self) -> Vec<Control> {
         let mut children = vec![];
-        for child in &self.children {
+        for child in &mut self.children {
             children.push(child.clone());
-            let grandchildren = get_base(child.clone()).unwrap().get_children();
+            let grandchildren = child.get_base().get_children();
             children.extend(grandchildren);
         }
         children.into()
+    }
+
+    pub(crate) fn do_layout(&mut self, parent_rect: Rect) {
+        if !self.validated {
+            println!("layout validated");
+            self.validated = true
+        }
+
+        for child in &mut self.children {
+            child.get_base().do_layout(self.computed_bounds);
+        }
     }
 }
