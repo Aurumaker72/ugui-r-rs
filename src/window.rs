@@ -84,6 +84,6 @@ impl Window {
 
     pub fn set_content(&mut self, control: Control) {
         self.content = control;
-        self.content.get_base().validated = false;
+        self.content.get_base_mut().validated = false;
     }
 }

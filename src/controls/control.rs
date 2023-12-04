@@ -24,7 +24,14 @@ pub enum Control {
 }
 
 impl Control {
-    pub(crate) fn get_base(&mut self) -> &mut BaseControl {
+    pub(crate) fn get_base_mut(&mut self) -> &mut BaseControl {
+        match self {
+            Control::Label { base, .. } => base,
+            Control::Stack { base, .. } => base,
+            _ => panic!("Expected control, got none"),
+        }
+    }
+    pub(crate) fn get_base(&self) -> &BaseControl {
         match self {
             Control::Label { base, .. } => base,
             Control::Stack { base, .. } => base,
@@ -57,21 +64,28 @@ impl Control {
             _ => panic!("Not implemented for {:?}", self),
         }
     }
+    pub(crate) fn compute_layout_bounds<'a>(
+        &self,
+        parent_rect: Rect,
+        font: &Font<'a, 'static>,
+    ) -> Rect {
+        let size = self.compute_desired_size(font);
+
+        Rect {
+            x: parent_rect.x,
+            y: parent_rect.y,
+            w: size.x,
+            h: size.y,
+        }
+    }
     pub(crate) fn do_layout<'a>(&mut self, parent_rect: Rect, font: &Font<'a, 'static>) {
         let cloned = self.clone();
-        let mut base = self.get_base();
+        let mut base = self.get_base_mut();
 
         if !base.validated {
-            let size = cloned.compute_desired_size(font);
-
-            base.computed_bounds = Rect {
-                x: parent_rect.x,
-                y: parent_rect.y,
-                w: size.x,
-                h: size.y,
-            };
-            println!("validated, size: {:?}", size);
-            base.validated = true
+            base.computed_bounds = cloned.compute_layout_bounds(parent_rect, font);
+            base.validated = true;
+            println!("computed bounds: {:?}", base.computed_bounds);
         }
 
         for child in &mut base.children {
@@ -109,9 +123,9 @@ impl BaseControl {
         }
     }
 
-    pub(crate) fn get_children(&mut self) -> Vec<Control> {
+    pub(crate) fn get_children(&self) -> Vec<Control> {
         let mut children = vec![];
-        for child in &mut self.children {
+        for child in &self.children {
             children.push(child.clone());
             let grandchildren = child.get_base().get_children();
             children.extend(grandchildren);
