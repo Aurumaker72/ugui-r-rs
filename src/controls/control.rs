@@ -34,13 +34,26 @@ impl Control {
     pub(crate) fn compute_desired_size<'a>(&self, font: &Font<'a, 'static>) -> Point {
         match self {
             Control::Label { base, text } => {
+                // Label measurement: string size with current font
                 let size = font.size_of(text).unwrap();
                 Point {
                     x: size.0 as f32,
                     y: size.1 as f32,
                 }
             }
-            Control::Stack { base, .. } => Default::default(),
+            Control::Stack { base, .. } => {
+                // Stack measurement: sum of h component of all children, max of w component
+                let children_sizes = base.children.iter().map(|x| x.compute_desired_size(font));
+
+                Point {
+                    x: children_sizes
+                        .clone()
+                        .max_by(|a, b| a.x.total_cmp(&b.x))
+                        .unwrap()
+                        .x,
+                    y: children_sizes.clone().map(|x| x.y).sum(),
+                }
+            }
             _ => panic!("Not implemented for {:?}", self),
         }
     }
