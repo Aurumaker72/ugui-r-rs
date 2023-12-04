@@ -78,6 +78,7 @@ impl Window {
                 &font,
             );
 
+            self.content.render(&mut self.canvas);
             self.canvas.present();
         }
     }

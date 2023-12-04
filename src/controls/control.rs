@@ -1,4 +1,6 @@
 use crate::core::geo::{Alignment, Point, Rect};
+use sdl2::pixels::Color;
+use sdl2::render::{Canvas, WindowCanvas};
 use sdl2::sys::ttf::TTF_Font;
 use sdl2::ttf::Font;
 use std::cell::Ref;
@@ -6,7 +8,6 @@ use std::rc::Rc;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct BaseControl {
-    margin: Rect,
     h_align: Alignment,
     v_align: Alignment,
     visible: bool,
@@ -104,6 +105,16 @@ impl Control {
         }
         base_rect
     }
+    pub(crate) fn render(&self, window_canvas: &mut WindowCanvas) {
+        let base = self.get_base();
+
+        window_canvas.set_draw_color(Color::RED);
+        window_canvas.draw_rect(self.get_base().computed_bounds.to_sdl());
+
+        for child in &base.children {
+            child.render(window_canvas);
+        }
+    }
     pub(crate) fn do_layout<'a>(&mut self, parent_rect: Rect, font: &Font<'a, 'static>) {
         let cloned = self.clone();
         let mut base = self.get_base_mut();
@@ -123,7 +134,6 @@ impl Control {
 impl BaseControl {
     pub fn default() -> Self {
         BaseControl {
-            margin: Default::default(),
             h_align: Default::default(),
             v_align: Default::default(),
             children: Default::default(),
@@ -132,14 +142,8 @@ impl BaseControl {
             computed_bounds: Default::default(),
         }
     }
-    pub fn new(
-        margin: Rect,
-        h_align: Alignment,
-        v_align: Alignment,
-        children: Vec<Control>,
-    ) -> Self {
+    pub fn new(h_align: Alignment, v_align: Alignment, children: Vec<Control>) -> Self {
         BaseControl {
-            margin,
             h_align,
             v_align,
             children,
