@@ -70,13 +70,39 @@ impl Control {
         font: &Font<'a, 'static>,
     ) -> Rect {
         let size = self.compute_desired_size(font);
-
-        Rect {
-            x: parent_rect.x,
-            y: parent_rect.y,
+        let base = self.get_base();
+        let mut base_rect = Rect {
+            x: 0.0,
+            y: 0.0,
             w: size.x,
             h: size.y,
+        };
+        if base.h_align == Alignment::Start {
+            base_rect.x = parent_rect.x;
         }
+        if base.h_align == Alignment::Center {
+            base_rect.x = parent_rect.x + parent_rect.w / 2.0 - size.x / 2.0;
+        }
+        if base.h_align == Alignment::End {
+            base_rect.x = parent_rect.x + parent_rect.w - size.x;
+        }
+        if base.h_align == Alignment::Fill {
+            base_rect.w = parent_rect.w;
+        }
+
+        if base.v_align == Alignment::Start {
+            base_rect.y = parent_rect.y;
+        }
+        if base.v_align == Alignment::Center {
+            base_rect.y = parent_rect.y + parent_rect.h / 2.0 - size.y / 2.0;
+        }
+        if base.v_align == Alignment::End {
+            base_rect.y = parent_rect.y + parent_rect.h - size.y;
+        }
+        if base.v_align == Alignment::Fill {
+            base_rect.h = parent_rect.h;
+        }
+        base_rect
     }
     pub(crate) fn do_layout<'a>(&mut self, parent_rect: Rect, font: &Font<'a, 'static>) {
         let cloned = self.clone();
