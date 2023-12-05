@@ -98,13 +98,9 @@ impl Control {
         &self,
         parent_rect: Rect,
         font: &Font<'a, 'static>,
-    ) -> Vec<Rect> {
+    ) -> (Rect, Vec<Rect>) {
         let base = self.get_base();
-        let mut base_layout_bounds: Vec<Rect> = base
-            .children
-            .iter()
-            .map(|x| x.get_base_layout_bounds(parent_rect, font))
-            .collect();
+        let layout_bounds = self.get_base_layout_bounds(parent_rect, font);
 
         match self {
             Control::Stack { base, .. } => {
@@ -112,15 +108,30 @@ impl Control {
                 // take base layout bounds and offset them by accumulated height offset
 
                 let mut h = 0.0;
-                for i in 0..base_layout_bounds.len() {
-                    let rect = &mut base_layout_bounds[i];
-                    let _child = base.children[i].get_base();
-                    rect.y += h;
-                    h += rect.h;
+                for i in 0..base.children.len() {
+                    let original_rect = base.children[i].get_base().computed_bounds;
+                    let rect = &mut (original_rect.clone());
+                    let child_base = base.children[i].get_base();
+
+                    let available_rect = Rect {
+                        x: base.computed_bounds.x,
+                        y: base.computed_bounds.y + h,
+                        w: base.computed_bounds.w,
+                        h: h,
+                    };
+
+                    // We need to position the rect inside our available item space according to the child's alignment properties
+                    // if child_base.h_align == Alignment::Center {
+                    *rect = available_rect;
+                    // }
+
+                    // rect.y += h;
+                    h += original_rect.h;
                 }
-                base_layout_bounds
+
+                (layout_bounds, vec![])
             }
-            _ => base_layout_bounds,
+            _ => (layout_bounds, vec![]),
         }
     }
     pub(crate) fn render(&self, window_canvas: &mut WindowCanvas) {
@@ -145,19 +156,43 @@ impl Control {
         let cloned = self.clone();
         let base = self.get_base_mut();
 
-        if !base.validated {
-            let layout_bounds = cloned.compute_layout_bounds(parent_rect, font);
-            for i in 0..base.children.len() {
-                base.children[i].get_base_mut().computed_bounds = layout_bounds[i];
-            }
-
-            base.computed_bounds = cloned.get_base_layout_bounds(parent_rect, font);
-            base.validated = true;
+        if base.validated {
+            return;
         }
+
+        // Compute the base layout bounds, and apply them
+        base.computed_bounds = cloned.get_base_layout_bounds(parent_rect, font);
 
         for child in &mut base.children {
             child.do_layout(base.computed_bounds, font);
         }
+
+        // Control-specific logic: we reposition childrens' bounds after their layout is finished
+        // (this is only reached after all children are laid out)
+        match cloned {
+            Control::Stack { .. } => {
+                // Accumulate height (needed for vertical stack)
+                let mut current_height = 0.0;
+                for child in &mut base.children {
+                    // Recompute layout bounds inside limited region
+                    let clone = child.clone();
+                    let child_base = child.get_base_mut();
+                    child_base.computed_bounds = clone.get_base_layout_bounds(
+                        Rect {
+                            x: base.computed_bounds.x,
+                            y: base.computed_bounds.y + current_height,
+                            w: base.computed_bounds.w,
+                            h: clone.get_base().computed_bounds.h,
+                        },
+                        font,
+                    );
+                    current_height += clone.get_base().computed_bounds.h;
+                }
+            }
+            _ => {}
+        }
+
+        base.validated = true;
     }
 }
 
