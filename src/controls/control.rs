@@ -1,10 +1,10 @@
 use crate::core::geo::{Alignment, Point, Rect};
 use sdl2::pixels::Color;
-use sdl2::render::{Canvas, WindowCanvas};
-use sdl2::sys::ttf::TTF_Font;
+use sdl2::render::{WindowCanvas};
+
 use sdl2::ttf::Font;
-use std::cell::Ref;
-use std::rc::Rc;
+
+
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct BaseControl {
@@ -41,7 +41,7 @@ impl Control {
     }
     pub(crate) fn compute_desired_size<'a>(&self, font: &Font<'a, 'static>) -> Point {
         match self {
-            Control::Label { base, text } => {
+            Control::Label { base: _, text } => {
                 // Label measurement: string size with current font
                 let size = font.size_of(text).unwrap();
                 Point {
@@ -116,7 +116,7 @@ impl Control {
                 let mut h = 0.0;
                 for i in 0..base_layout_bounds.len() {
                     let rect = &mut base_layout_bounds[i];
-                    let child = base.children[i].get_base();
+                    let _child = base.children[i].get_base();
                     rect.y += h;
                     h += rect.h;
                 }
@@ -129,15 +129,15 @@ impl Control {
         let base = self.get_base();
 
         window_canvas.set_draw_color(Color::RED);
-        window_canvas.draw_rect(self.get_base().computed_bounds.to_sdl());
+        window_canvas.draw_rect(self.get_base().computed_bounds.to_sdl()).unwrap();
 
         for child in &base.children {
             child.render(window_canvas);
         }
     }
     pub(crate) fn do_layout<'a>(&mut self, parent_rect: Rect, font: &Font<'a, 'static>) {
-        let mut cloned = self.clone();
-        let mut base = self.get_base_mut();
+        let cloned = self.clone();
+        let base = self.get_base_mut();
 
         if !base.validated {
             let layout_bounds = cloned.compute_layout_bounds(parent_rect, font);
@@ -177,11 +177,11 @@ impl BaseControl {
         }
     }
 
-    pub(crate) fn get_children(&self) -> Vec<Control> {
+    pub(crate) fn _get_children(&self) -> Vec<Control> {
         let mut children = vec![];
         for child in &self.children {
             children.push(child.clone());
-            let grandchildren = child.get_base().get_children();
+            let grandchildren = child.get_base()._get_children();
             children.extend(grandchildren);
         }
         children.into()

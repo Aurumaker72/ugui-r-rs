@@ -1,17 +1,17 @@
 extern crate sdl2;
 
-use crate::controls::control::BaseControl;
+
 use crate::controls::control::Control;
 use crate::core::geo::Rect;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::WindowCanvas;
-use sdl2::ttf::Font;
+
 use sdl2::ttf::Sdl2TtfContext;
 use sdl2::EventPump;
-use std::ops::{Deref, DerefMut};
+
 use std::path::Path;
-use std::rc::Rc;
+
 
 pub struct Window {
     canvas: WindowCanvas,
