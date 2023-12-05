@@ -22,6 +22,27 @@ fn main() {
                         base: BaseControl::default(),
                         text: "testing".to_string(),
                     },
+                    Stack {
+                        horizontal: false,
+                        base: BaseControl::new(
+                            Alignment::Center,
+                            Alignment::Center,
+                            vec![
+                                Label {
+                                    base: BaseControl::default(),
+                                    text: "testing".to_string(),
+                                },
+                                Label {
+                                    base: BaseControl::default(),
+                                    text: "adsadsadsads".to_string(),
+                                },
+                                Label {
+                                    base: BaseControl::default(),
+                                    text: "testing".to_string(),
+                                },
+                            ],
+                        ),
+                    },
                     Label {
                         base: BaseControl::default(),
                         text: "everything appears to be in order".to_string(),

@@ -109,7 +109,13 @@ impl Control {
         let base = self.get_base();
 
         let color = match self {
-            Control::Stack { .. } => Color::RED,
+            Control::Stack { horizontal, .. } => {
+                if *horizontal {
+                    Color::RED
+                } else {
+                    Color::YELLOW
+                }
+            }
             Control::Label { .. } => Color::WHITE,
             _ => Color::MAGENTA,
         };
@@ -146,15 +152,14 @@ impl Control {
                         let clone = child.clone();
                         let child_base = child.get_base_mut();
                         let width = clone.compute_desired_size(font).x;
-                        child_base.computed_bounds = clone.get_base_layout_bounds(
-                            Rect {
-                                x: base.computed_bounds.x + current_width,
-                                y: base.computed_bounds.y,
-                                w: width,
-                                h: base.computed_bounds.h,
-                            },
-                            font,
-                        );
+                        let fit_rect = Rect {
+                            x: base.computed_bounds.x + current_width,
+                            y: base.computed_bounds.y,
+                            w: width,
+                            h: base.computed_bounds.h,
+                        };
+                        child_base.computed_bounds = clone.get_base_layout_bounds(fit_rect, font);
+                        child.do_layout(fit_rect, font);
                         current_width += width;
                     }
                 } else {
@@ -165,15 +170,14 @@ impl Control {
                         let clone = child.clone();
                         let child_base = child.get_base_mut();
                         let height = clone.compute_desired_size(font).y;
-                        child_base.computed_bounds = clone.get_base_layout_bounds(
-                            Rect {
-                                x: base.computed_bounds.x,
-                                y: base.computed_bounds.y + current_height,
-                                w: base.computed_bounds.w,
-                                h: height,
-                            },
-                            font,
-                        );
+                        let fit_rect = Rect {
+                            x: base.computed_bounds.x,
+                            y: base.computed_bounds.y + current_height,
+                            w: base.computed_bounds.w,
+                            h: height,
+                        };
+                        child_base.computed_bounds = clone.get_base_layout_bounds(fit_rect, font);
+                        child.do_layout(fit_rect, font);
                         current_height += height;
                     }
                 }
