@@ -114,7 +114,9 @@ impl Control {
                 // take base layout bounds and offset them by accumulated height offset
 
                 let mut h = 0.0;
-                for rect in &mut base_layout_bounds {
+                for i in 0..base_layout_bounds.len() {
+                    let rect = &mut base_layout_bounds[i];
+                    let child = base.children[i].get_base();
                     rect.y += h;
                     h += rect.h;
                 }
@@ -143,6 +145,7 @@ impl Control {
                 base.children[i].get_base_mut().computed_bounds = layout_bounds[i];
             }
 
+            base.computed_bounds = cloned.get_base_layout_bounds(parent_rect, font);
             base.validated = true;
         }
 
