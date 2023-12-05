@@ -1,10 +1,8 @@
 use crate::core::geo::{Alignment, Point, Rect};
 use sdl2::pixels::Color;
-use sdl2::render::{WindowCanvas};
+use sdl2::render::WindowCanvas;
 
 use sdl2::ttf::Font;
-
-
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct BaseControl {
@@ -128,8 +126,16 @@ impl Control {
     pub(crate) fn render(&self, window_canvas: &mut WindowCanvas) {
         let base = self.get_base();
 
-        window_canvas.set_draw_color(Color::RED);
-        window_canvas.draw_rect(self.get_base().computed_bounds.to_sdl()).unwrap();
+        let color = match self {
+            Control::Stack { .. } => Color::RED,
+            Control::Label { .. } => Color::WHITE,
+            _ => Color::MAGENTA,
+        };
+
+        window_canvas.set_draw_color(color);
+        window_canvas
+            .draw_rect(self.get_base().computed_bounds.to_sdl())
+            .unwrap();
 
         for child in &base.children {
             child.render(window_canvas);
