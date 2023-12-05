@@ -29,22 +29,38 @@ fn main() {
                             Alignment::Center,
                             vec![
                                 Label {
-                                    base: BaseControl::default(),
-                                    text: "testing".to_string(),
+                                    base: BaseControl::new(
+                                        Alignment::Start,
+                                        Alignment::Center,
+                                        vec![],
+                                    ),
+                                    text: "aaa".to_string(),
+                                },
+                                Label {
+                                    base: BaseControl::new(
+                                        Alignment::Center,
+                                        Alignment::Center,
+                                        vec![],
+                                    ),
+                                    text: "bbbb".to_string(),
+                                },
+                                Label {
+                                    base: BaseControl::new(
+                                        Alignment::End,
+                                        Alignment::Center,
+                                        vec![],
+                                    ),
+                                    text: "ccccc".to_string(),
                                 },
                                 Label {
                                     base: BaseControl::default(),
-                                    text: "adsadsadsads".to_string(),
-                                },
-                                Label {
-                                    base: BaseControl::default(),
-                                    text: "testing".to_string(),
+                                    text: "ddddddddddddddd".to_string(),
                                 },
                             ],
                         ),
                     },
                     Label {
-                        base: BaseControl::default(),
+                        base: BaseControl::new(Alignment::Fill, Alignment::Center, vec![]),
                         text: "everything appears to be in order".to_string(),
                     },
                 ],
