@@ -21,21 +21,21 @@ pub enum Control {
 }
 
 impl Control {
-    pub(crate) fn get_base_mut(&mut self) -> &mut BaseControl {
+    fn get_base_mut(&mut self) -> &mut BaseControl {
         match self {
             Control::Label { base, .. } => base,
             Control::Stack { base, .. } => base,
             _ => panic!("Expected control, got none"),
         }
     }
-    pub(crate) fn get_base(&self) -> &BaseControl {
+    fn get_base(&self) -> &BaseControl {
         match self {
             Control::Label { base, .. } => base,
             Control::Stack { base, .. } => base,
             _ => panic!("Expected control, got none"),
         }
     }
-    pub(crate) fn compute_desired_size<'a>(&self, font: &Font<'a, 'static>) -> Point {
+    fn compute_desired_size<'a>(&self, font: &Font<'a, 'static>) -> Point {
         match self {
             Control::Label { base: _, text } => {
                 // Label measurement: string size with current font
