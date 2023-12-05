@@ -10,14 +10,12 @@ pub struct BaseControl {
     v_align: Alignment,
     visible: bool,
     children: Vec<Control>,
-    pub(crate) validated: bool,
     // The absolute bounds, as computed by the layout engine
     pub(crate) computed_bounds: Rect,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Control {
-    None,
     Label { base: BaseControl, text: String },
     Stack { base: BaseControl, horizontal: bool },
 }
@@ -129,10 +127,6 @@ impl Control {
         let cloned = self.clone();
         let base = self.get_base_mut();
 
-        if base.validated {
-            return;
-        }
-
         // Compute the base layout bounds, and apply them
         base.computed_bounds = cloned.get_base_layout_bounds(parent_rect, font);
 
@@ -186,8 +180,6 @@ impl Control {
             }
             _ => {}
         }
-
-        base.validated = true;
     }
 }
 
@@ -198,7 +190,6 @@ impl BaseControl {
             v_align: Default::default(),
             children: Default::default(),
             visible: true,
-            validated: false,
             computed_bounds: Default::default(),
         }
     }
@@ -208,7 +199,6 @@ impl BaseControl {
             v_align,
             children,
             visible: true,
-            validated: false,
             computed_bounds: Default::default(),
         }
     }
