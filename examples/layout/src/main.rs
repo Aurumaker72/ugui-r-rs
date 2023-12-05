@@ -6,6 +6,7 @@ fn main() {
     let mut window = Window::new();
 
     window.set_content(Stack {
+        horizontal: true,
         base: BaseControl::new(
             Alignment::Center,
             Alignment::Center,

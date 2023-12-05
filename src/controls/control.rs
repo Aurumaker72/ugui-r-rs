@@ -19,7 +19,7 @@ pub struct BaseControl {
 pub enum Control {
     None,
     Label { base: BaseControl, text: String },
-    Stack { base: BaseControl },
+    Stack { base: BaseControl, horizontal: bool },
 }
 
 impl Control {
@@ -47,17 +47,30 @@ impl Control {
                     y: size.1 as f32,
                 }
             }
-            Control::Stack { base, .. } => {
-                // Stack measurement: sum of h component of all children, max of w component
+            Control::Stack {
+                base, horizontal, ..
+            } => {
+                // Stack measurement: sum of w/h component of all children, max of w/h component
                 let children_sizes = base.children.iter().map(|x| x.compute_desired_size(font));
 
-                Point {
-                    x: children_sizes
-                        .clone()
-                        .max_by(|a, b| a.x.total_cmp(&b.x))
-                        .unwrap()
-                        .x,
-                    y: children_sizes.clone().map(|x| x.y).sum(),
+                if *horizontal {
+                    Point {
+                        x: children_sizes.clone().map(|x| x.x).sum(),
+                        y: children_sizes
+                            .clone()
+                            .max_by(|a, b| a.y.total_cmp(&b.y))
+                            .unwrap()
+                            .y,
+                    }
+                } else {
+                    Point {
+                        x: children_sizes
+                            .clone()
+                            .max_by(|a, b| a.x.total_cmp(&b.x))
+                            .unwrap()
+                            .x,
+                        y: children_sizes.clone().map(|x| x.y).sum(),
+                    }
                 }
             }
             _ => panic!("Not implemented for {:?}", self),
@@ -105,7 +118,7 @@ impl Control {
 
         window_canvas.set_draw_color(color);
         window_canvas
-            .draw_rect(self.get_base().computed_bounds.to_sdl())
+            .draw_rect(self.get_base().computed_bounds.inflate(-1.0).to_sdl())
             .unwrap();
 
         for child in &base.children {
@@ -130,24 +143,45 @@ impl Control {
         // Control-specific logic: we reposition childrens' bounds after their layout is finished
         // (this is only reached after all children are laid out)
         match cloned {
-            Control::Stack { .. } => {
-                // Accumulate height (needed for vertical stack)
-                let mut current_height = 0.0;
-                for child in &mut base.children {
-                    // Recompute layout bounds inside limited region
-                    let clone = child.clone();
-                    let child_base = child.get_base_mut();
-                    let height = clone.compute_desired_size(font).y;
-                    child_base.computed_bounds = clone.get_base_layout_bounds(
-                        Rect {
-                            x: base.computed_bounds.x,
-                            y: base.computed_bounds.y + current_height,
-                            w: base.computed_bounds.w,
-                            h: height,
-                        },
-                        font,
-                    );
-                    current_height += height;
+            Control::Stack { horizontal, .. } => {
+                if horizontal {
+                    // Accumulate width (needed for horizontal stack)
+                    let mut current_width = 0.0;
+                    for child in &mut base.children {
+                        // Recompute layout bounds inside limited region
+                        let clone = child.clone();
+                        let child_base = child.get_base_mut();
+                        let width = clone.compute_desired_size(font).x;
+                        child_base.computed_bounds = clone.get_base_layout_bounds(
+                            Rect {
+                                x: base.computed_bounds.x + current_width,
+                                y: base.computed_bounds.y,
+                                w: width,
+                                h: base.computed_bounds.h,
+                            },
+                            font,
+                        );
+                        current_width += width;
+                    }
+                } else {
+                    // Accumulate height (needed for vertical stack)
+                    let mut current_height = 0.0;
+                    for child in &mut base.children {
+                        // Recompute layout bounds inside limited region
+                        let clone = child.clone();
+                        let child_base = child.get_base_mut();
+                        let height = clone.compute_desired_size(font).y;
+                        child_base.computed_bounds = clone.get_base_layout_bounds(
+                            Rect {
+                                x: base.computed_bounds.x,
+                                y: base.computed_bounds.y + current_height,
+                                w: base.computed_bounds.w,
+                                h: height,
+                            },
+                            font,
+                        );
+                        current_height += height;
+                    }
                 }
             }
             _ => {}
