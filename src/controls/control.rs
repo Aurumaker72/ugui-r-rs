@@ -73,6 +73,7 @@ impl Control {
             w: size.x,
             h: size.y,
         };
+        println!("{:?}", parent_rect);
         if base.h_align == Alignment::Center {
             base_rect.x = parent_rect.x + parent_rect.w / 2.0 - size.x / 2.0;
         }
@@ -94,46 +95,6 @@ impl Control {
         base_rect
     }
 
-    pub(crate) fn compute_layout_bounds<'a>(
-        &self,
-        parent_rect: Rect,
-        font: &Font<'a, 'static>,
-    ) -> (Rect, Vec<Rect>) {
-        let base = self.get_base();
-        let layout_bounds = self.get_base_layout_bounds(parent_rect, font);
-
-        match self {
-            Control::Stack { base, .. } => {
-                // Stack child layout computation:
-                // take base layout bounds and offset them by accumulated height offset
-
-                let mut h = 0.0;
-                for i in 0..base.children.len() {
-                    let original_rect = base.children[i].get_base().computed_bounds;
-                    let rect = &mut (original_rect.clone());
-                    let child_base = base.children[i].get_base();
-
-                    let available_rect = Rect {
-                        x: base.computed_bounds.x,
-                        y: base.computed_bounds.y + h,
-                        w: base.computed_bounds.w,
-                        h: h,
-                    };
-
-                    // We need to position the rect inside our available item space according to the child's alignment properties
-                    // if child_base.h_align == Alignment::Center {
-                    *rect = available_rect;
-                    // }
-
-                    // rect.y += h;
-                    h += original_rect.h;
-                }
-
-                (layout_bounds, vec![])
-            }
-            _ => (layout_bounds, vec![]),
-        }
-    }
     pub(crate) fn render(&self, window_canvas: &mut WindowCanvas) {
         let base = self.get_base();
 
@@ -177,16 +138,17 @@ impl Control {
                     // Recompute layout bounds inside limited region
                     let clone = child.clone();
                     let child_base = child.get_base_mut();
+                    let height = clone.compute_desired_size(font).y;
                     child_base.computed_bounds = clone.get_base_layout_bounds(
                         Rect {
                             x: base.computed_bounds.x,
                             y: base.computed_bounds.y + current_height,
                             w: base.computed_bounds.w,
-                            h: clone.get_base().computed_bounds.h,
+                            h: height,
                         },
                         font,
                     );
-                    current_height += clone.get_base().computed_bounds.h;
+                    current_height += height;
                 }
             }
             _ => {}

@@ -15,7 +15,7 @@ fn main() {
                     text: "testing".to_string(),
                 },
                 Label {
-                    base: BaseControl::default(),
+                    base: BaseControl::new(Alignment::Center, Alignment::Fill, vec![]),
                     text: "testing".to_string(),
                 },
                 Label {
