@@ -73,7 +73,6 @@ impl Control {
             w: size.x,
             h: size.y,
         };
-        println!("{:?}", parent_rect);
         if base.h_align == Alignment::Center {
             base_rect.x = parent_rect.x + parent_rect.w / 2.0 - size.x / 2.0;
         }
@@ -178,15 +177,5 @@ impl BaseControl {
             validated: false,
             computed_bounds: Default::default(),
         }
-    }
-
-    pub(crate) fn _get_children(&self) -> Vec<Control> {
-        let mut children = vec![];
-        for child in &self.children {
-            children.push(child.clone());
-            let grandchildren = child.get_base()._get_children();
-            children.extend(grandchildren);
-        }
-        children.into()
     }
 }
