@@ -2,6 +2,7 @@ use crate::core::geo::{Alignment, Point, Rect};
 use sdl2::pixels::Color;
 use sdl2::render::WindowCanvas;
 
+use crate::core::messages::Message;
 use sdl2::ttf::Font;
 
 /// Describes the flow of a sequence
@@ -29,6 +30,9 @@ pub struct BaseControl {
     /// The control's children
     pub children: Vec<Control>,
 
+    /// A function which is called whenever the control receives a new message
+    pub on_message: fn(Message),
+
     /// The absolute bounds, as computed by the layout engine. (read-only)
     pub computed_bounds: Rect,
 }
@@ -40,6 +44,7 @@ impl Default for BaseControl {
             v_align: Default::default(),
             children: Default::default(),
             computed_bounds: Default::default(),
+            on_message: |x| {},
             visible: true,
         }
     }
@@ -235,5 +240,9 @@ impl Control {
             }
             _ => {}
         }
+    }
+
+    pub(crate) fn process_message(&mut self, message: Message) {
+        println!("{:#?}", message);
     }
 }

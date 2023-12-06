@@ -1,6 +1,7 @@
 use ugui_r_rs::controls::control::Control::{Label, Stack};
 use ugui_r_rs::controls::control::{BaseControl, Orientation};
 use ugui_r_rs::core::geo::Alignment;
+use ugui_r_rs::core::messages::Message;
 use ugui_r_rs::window::{Window, WindowBuilder};
 
 fn main() {
@@ -8,6 +9,7 @@ fn main() {
         .content(Stack {
             orientation: Orientation::Horizontal,
             base: BaseControl {
+                on_message: |msg| println!("{:?}", msg),
                 h_align: Alignment::Center,
                 v_align: Alignment::Center,
                 children: vec![
