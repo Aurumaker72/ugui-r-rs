@@ -4,23 +4,70 @@ use sdl2::render::WindowCanvas;
 
 use sdl2::ttf::Font;
 
+/// Describes the flow of a sequence
+#[derive(Clone, PartialEq, Debug, Default)]
+pub enum Orientation {
+    /// The flow is horizontal
+    Horizontal,
+
+    /// The flow is vertical
+    #[default]
+    Vertical,
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct BaseControl {
-    h_align: Alignment,
-    v_align: Alignment,
-    visible: bool,
-    children: Vec<Control>,
-    // The absolute bounds, as computed by the layout engine
-    pub(crate) computed_bounds: Rect,
+    /// The horizontal alignment relative to the parent
+    pub h_align: Alignment,
+
+    /// The vertical alignment relative to the parent
+    pub v_align: Alignment,
+
+    /// Whether the control is visible
+    pub visible: bool,
+
+    /// The control's children
+    pub children: Vec<Control>,
+
+    /// The absolute bounds, as computed by the layout engine. (read-only)
+    pub computed_bounds: Rect,
+}
+
+impl Default for BaseControl {
+    fn default() -> Self {
+        BaseControl {
+            h_align: Default::default(),
+            v_align: Default::default(),
+            children: Default::default(),
+            computed_bounds: Default::default(),
+            visible: true,
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Control {
+    /// A control which displays text
     Label { base: BaseControl, text: String },
-    Stack { base: BaseControl, horizontal: bool },
+
+    /// A control which lays out its children in a stack
+    Stack {
+        base: BaseControl,
+        orientation: Orientation,
+    },
 }
 
 impl Control {
+    // TODO: Control templates:
+    //
+    // Control enum holds bare minimum controls, and the Control helper functions build hierarchies via predefined templates
+
+    /// Generates a button control
+    // pub fn button(base: BaseControl, text: String) {
+    //     Rectangle { something }
+    //     Label { base, text }
+    // }
+
     fn get_base_mut(&mut self) -> &mut BaseControl {
         match self {
             Control::Label { base, .. } => base,
@@ -46,12 +93,16 @@ impl Control {
                 }
             }
             Control::Stack {
-                base, horizontal, ..
+                base, orientation, ..
             } => {
+                if base.children.len() == 0 {
+                    return Point::default();
+                }
+
                 // Stack measurement: sum of w/h component of all children, max of w/h component
                 let children_sizes = base.children.iter().map(|x| x.compute_desired_size(font));
 
-                if *horizontal {
+                if *orientation == Orientation::Horizontal {
                     Point {
                         x: children_sizes.clone().map(|x| x.x).sum(),
                         y: children_sizes
@@ -109,8 +160,8 @@ impl Control {
         let base = self.get_base();
 
         let color = match self {
-            Control::Stack { horizontal, .. } => {
-                if *horizontal {
+            Control::Stack { orientation, .. } => {
+                if *orientation == Orientation::Horizontal {
                     Color::RED
                 } else {
                     Color::YELLOW
@@ -143,8 +194,8 @@ impl Control {
         // Control-specific logic: we reposition childrens' bounds after their layout is finished
         // (this is only reached after all children are laid out)
         match cloned {
-            Control::Stack { horizontal, .. } => {
-                if horizontal {
+            Control::Stack { orientation, .. } => {
+                if orientation == Orientation::Horizontal {
                     // Accumulate width (needed for horizontal stack)
                     let mut current_width = 0.0;
                     for child in &mut base.children {
@@ -183,27 +234,6 @@ impl Control {
                 }
             }
             _ => {}
-        }
-    }
-}
-
-impl BaseControl {
-    pub fn default() -> Self {
-        BaseControl {
-            h_align: Default::default(),
-            v_align: Default::default(),
-            children: Default::default(),
-            visible: true,
-            computed_bounds: Default::default(),
-        }
-    }
-    pub fn new(h_align: Alignment, v_align: Alignment, children: Vec<Control>) -> Self {
-        BaseControl {
-            h_align,
-            v_align,
-            children,
-            visible: true,
-            computed_bounds: Default::default(),
         }
     }
 }
