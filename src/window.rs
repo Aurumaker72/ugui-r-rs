@@ -133,10 +133,14 @@ impl Ugui {
                                     (control.procedure)(control.hwnd, Message::Unfocus);
                                 }
 
+                                let prev_focused_hwnd = focused_hwnd;
                                 focused_hwnd = Some(control.hwnd);
                                 (control.procedure)(control.hwnd, Message::LmbDown);
 
-                                (control.procedure)(control.hwnd, Message::Focus);
+                                // Only send focus message if focus state actually changes after reassignment
+                                if focused_hwnd.ne(&prev_focused_hwnd) {
+                                    (control.procedure)(control.hwnd, Message::Focus);
+                                }
                             }
                         }
                     }
