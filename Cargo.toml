@@ -3,6 +3,9 @@ name = "ugui_r_rs"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies]
+flagset = "0.4.4"
+
 [dependencies.sdl2]
 version = "0.35.2"
 default-features = false

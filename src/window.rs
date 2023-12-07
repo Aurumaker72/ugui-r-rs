@@ -1,9 +1,12 @@
 extern crate sdl2;
 use crate::core::geo::Rect;
+use crate::core::styles::Styles;
+use flagset::FlagSet;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::collections::HashMap;
 use std::path::Path;
+
 type HWND = usize;
 
 pub const CENTER_SCREEN: f32 = -1.0;
@@ -12,7 +15,7 @@ struct Window {
     hwnd: HWND,
     class: String,
     caption: String,
-    style: u32,
+    styles: FlagSet<Styles>,
     rect: Rect,
     parent: Option<HWND>,
 }
@@ -28,7 +31,7 @@ impl Ugui {
         &mut self,
         class: String,
         caption: String,
-        style: u32,
+        styles: FlagSet<Styles>,
         rect: Rect,
         parent: Option<HWND>,
     ) -> Option<HWND> {
@@ -36,7 +39,7 @@ impl Ugui {
             hwnd: self.windows.len() + 1,
             class,
             caption,
-            style,
+            styles,
             rect,
             parent,
         });
