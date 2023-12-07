@@ -41,7 +41,7 @@ pub struct Ugui {
 
 impl Ugui {
     fn window_at_point(&self, point: Point) -> Option<&Window> {
-        self.windows.iter().find(|x| point.inside(x.rect))
+        self.windows.iter().rev().find(|x| point.inside(x.rect))
     }
     pub fn create_window(
         &mut self,
@@ -156,7 +156,16 @@ impl Ugui {
                             }
                         }
                     }
-                    Event::MouseMotion { x, y, .. } => {}
+                    Event::MouseMotion {
+                        x, y, mousestate, ..
+                    } => {
+                        let point = Point::new_i(x, y);
+
+                        // If we have a control at the mouse, we send it mousemove
+                        if let Some(control) = self.window_at_point(point) {
+                            (control.procedure)(control.hwnd, Message::MouseMove);
+                        }
+                    }
                     _ => {}
                 }
             }
