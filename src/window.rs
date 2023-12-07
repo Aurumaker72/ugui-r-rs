@@ -43,6 +43,28 @@ impl Ugui {
     fn window_at_point(&self, point: Point) -> Option<&Window> {
         self.windows.iter().rev().find(|x| point.inside(x.rect))
     }
+
+    fn window_by_hwnd(&self, hwnd: HWND) -> Option<usize> {
+        for i in 0..self.windows.len() {
+            if self.windows[i].hwnd == hwnd {
+                return Some(i);
+            }
+        }
+        return None;
+    }
+
+    /// Creates a window with the specified arguments
+    ///
+    /// # Arguments
+    ///
+    /// * `class`: (TODO) The control's class name, which is used for determining the window's type
+    /// * `caption`: The control's caption, which should consist of descriptive text
+    /// * `styles`: Bitfield with various style flags
+    /// * `rect`: The control's visual bounds
+    /// * `parent`: The window's parent (e.g.: the top-level window, if the created control is a child of it) or `None`
+    /// * `procedure`: The window's procedure, which processes messages, or `None`
+    ///
+    /// returns: Option<HWND> The window's handle
     pub fn create_window(
         &mut self,
         class: String,
@@ -73,15 +95,57 @@ impl Ugui {
         });
 
         actual_procedure(hwnd, Message::Create);
+        actual_procedure(hwnd, Message::StylesChanged(styles));
 
         Some(hwnd)
     }
 
+    /// Gets a window's styles
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    ///
+    /// returns: FlagSet<Styles> The window's styles
+    ///
+    pub fn get_window_style(&self, hwnd: HWND) -> FlagSet<Styles> {
+        self.windows[self.window_by_hwnd(hwnd).unwrap()].styles
+    }
+
+    /// Sets a window's styles and notifies it about the changes
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    /// * `styles`: The styles
+    ///
+    /// returns: ()
+    pub fn set_window_style(&mut self, hwnd: HWND, styles: FlagSet<Styles>) {
+        let i = self.window_by_hwnd(hwnd).unwrap();
+        self.windows[i].styles = styles;
+        (self.windows[i].procedure)(self.windows[i].hwnd, Message::StylesChanged(styles));
+    }
+
+    /// Shows a window, trapping the caller until the window closes
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    ///
+    /// returns: ()
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let hwnd = Ugui::default();
+    /// let hwnd = ugui.create_window();
+    /// ugui.show_window(hwnd);
+    /// ```
     pub fn show_window(&self, hwnd: HWND) {
+        let i = self.window_by_hwnd(hwnd).unwrap();
+        let window = &self.windows[i];
         let mut lmb_down_point = Point::default();
         let mut focused_hwnd: Option<HWND> = None;
-
-        let window = self.windows.iter().find(|x| x.hwnd == hwnd).unwrap();
 
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
@@ -163,7 +227,10 @@ impl Ugui {
 
                         // If we have a control at the mouse, we send it mousemove
                         if let Some(control) = self.window_at_point(point) {
-                            (control.procedure)(control.hwnd, Message::MouseMove(point.sub(control.rect.top_left())));
+                            (control.procedure)(
+                                control.hwnd,
+                                Message::MouseMove(point.sub(control.rect.top_left())),
+                            );
                         }
                     }
                     _ => {}

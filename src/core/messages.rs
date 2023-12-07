@@ -1,4 +1,6 @@
+use crate::core::styles::Styles;
 use crate::core::geo::{Point, Rect};
+use flagset::FlagSet;
 
 /// Messages which are sent to controls when application events happen
 #[derive(Clone, Debug)]
@@ -25,6 +27,10 @@ pub enum Message {
     /// The control lost focus
     Unfocus,
 
-    /// The controls needs repainting
+    /// The control needs repainting
     Paint,
+
+    /// The control's styles have changed
+    /// Contains the control's new styles
+    StylesChanged(FlagSet<Styles>),
 }
