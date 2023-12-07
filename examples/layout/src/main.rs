@@ -8,18 +8,6 @@ use ugui_r_rs::window::HWND;
 fn main() {
     let mut ugui = Ugui::default();
 
-    fn wndproc(hwnd: HWND, message: Message) -> u64 {
-        match message {
-            Message::Create => {
-                println!("Hello");
-            }
-            Message::Destroy => {
-                println!("Goodbye");
-            }
-        }
-        return 0
-    }
-
     let hwnd = ugui
         .create_window(
             "window".to_string(),
@@ -32,7 +20,7 @@ fn main() {
                 h: 480.0,
             },
             None,
-            Some(wndproc),
+            None,
         )
         .unwrap();
 

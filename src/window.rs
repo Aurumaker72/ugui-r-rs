@@ -1,10 +1,11 @@
 extern crate sdl2;
-use crate::core::geo::Rect;
+use crate::core::geo::{Point, Rect};
 use crate::core::messages::Message;
 use crate::core::styles::Styles;
 use flagset::FlagSet;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use sdl2::mouse::MouseButton;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -28,6 +29,7 @@ impl Window {
 }
 
 fn default_proc(hwnd: HWND, message: Message) -> u64 {
+    println!("{} {:?}", hwnd, message);
     return 0;
 }
 
@@ -38,6 +40,9 @@ pub struct Ugui {
 }
 
 impl Ugui {
+    fn window_at_point(&self, point: Point) -> Option<&Window> {
+        self.windows.iter().find(|x| point.inside(x.rect))
+    }
     pub fn create_window(
         &mut self,
         class: String,
@@ -73,6 +78,9 @@ impl Ugui {
     }
 
     pub fn show_window(&self, hwnd: HWND) {
+        let mut lmb_down_point = Point::default();
+        let mut focused_hwnd: Option<HWND> = None;
+
         let window = self.windows.iter().find(|x| x.hwnd == hwnd).unwrap();
 
         let sdl_context = sdl2::init().unwrap();
@@ -112,6 +120,39 @@ impl Ugui {
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. } => break 'running,
+                    Event::MouseButtonDown {
+                        mouse_btn, x, y, ..
+                    } => {
+                        let point = Point::new_i(x, y);
+
+                        if mouse_btn == MouseButton::Left {
+                            lmb_down_point = point;
+                            if let Some(control) = self.window_at_point(lmb_down_point) {
+                                // If focused HWNDs differ, we unfocus the old one
+                                if focused_hwnd.is_some() && focused_hwnd.unwrap() != control.hwnd {
+                                    (control.procedure)(control.hwnd, Message::Unfocus);
+                                }
+
+                                focused_hwnd = Some(control.hwnd);
+                                (control.procedure)(control.hwnd, Message::LmbDown);
+
+                                (control.procedure)(control.hwnd, Message::Focus);
+                            }
+                        }
+                    }
+                    Event::MouseButtonUp {
+                        mouse_btn, x, y, ..
+                    } => {
+                        let point = Point::new_i(x, y);
+
+                        if mouse_btn == MouseButton::Left {
+                            // Tell the previously clicked control we left it now
+                            if let Some(control) = self.window_at_point(lmb_down_point) {
+                                (control.procedure)(control.hwnd, Message::LmbUp);
+                            }
+                        }
+                    }
+                    Event::MouseMotion { x, y, .. } => {}
                     _ => {}
                 }
             }

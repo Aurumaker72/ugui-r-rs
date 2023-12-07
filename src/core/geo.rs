@@ -8,6 +8,12 @@ pub struct Point {
 }
 
 impl Point {
+    pub fn new_i(x: i32, y: i32) -> Point {
+        Point {
+            x: x as f32,
+            y: y as f32,
+        }
+    }
     pub fn to_sdl(&self) -> SdlPoint {
         SdlPoint::new(self.x as i32, self.y as i32)
     }
