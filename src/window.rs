@@ -1,97 +1,86 @@
 extern crate sdl2;
-
-use crate::controls::control::{BaseControl, Control};
 use crate::core::geo::Rect;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::render::WindowCanvas;
-
-use sdl2::ttf::Sdl2TtfContext;
-use sdl2::EventPump;
-
+use std::collections::HashMap;
 use std::path::Path;
+type HWND = usize;
 
-pub struct WindowBuilder {
-    title: String,
-    w: u32,
-    h: u32,
-    content: Control,
+pub const CENTER_SCREEN: f32 = -1.0;
+
+struct Window {
+    hwnd: HWND,
+    class: String,
+    caption: String,
+    style: u32,
+    rect: Rect,
+    parent: Option<HWND>,
 }
 
-impl WindowBuilder {
-    pub fn new() -> WindowBuilder {
-        WindowBuilder {
-            title: "ugui-r-rs".to_string(),
-            w: 640,
-            h: 480,
-            content: Control::Label {
-                base: BaseControl::default(),
-                text: "Hello World!".to_string(),
-            },
-        }
+/// The global application context, roughly equivalent to a WinAPI INSTANCE
+#[derive(Default)]
+pub struct Ugui {
+    windows: Vec<Window>,
+}
+
+impl Ugui {
+    pub fn create_window(
+        &mut self,
+        class: String,
+        caption: String,
+        style: u32,
+        rect: Rect,
+        parent: Option<HWND>,
+    ) -> Option<HWND> {
+        self.windows.push(Window {
+            hwnd: self.windows.len() + 1,
+            class,
+            caption,
+            style,
+            rect,
+            parent,
+        });
+        Some(self.windows.last().unwrap().hwnd)
     }
-    pub fn title(mut self, title: String) -> WindowBuilder {
-        self.title = title;
-        self
-    }
-    pub fn width(mut self, w: u32) -> WindowBuilder {
-        self.w = w;
-        self
-    }
-    pub fn height(mut self, h: u32) -> WindowBuilder {
-        self.h = h;
-        self
-    }
-    pub fn content(mut self, control: Control) -> WindowBuilder {
-        self.content = control;
-        self
-    }
-    pub fn build(self) -> Window {
+
+    pub fn show_window(&self, hwnd: HWND) {
+        let window = self.windows.iter().find(|x| x.hwnd == hwnd).unwrap();
+
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).unwrap();
 
-        let window = video_subsystem
-            .window(&self.title, self.w, self.h)
-            .opengl()
-            .resizable()
-            .build()
-            .map_err(|e| e.to_string())
-            .unwrap();
+        let mut window_builder = &mut video_subsystem.window(
+            &window.caption,
+            window.rect.w as u32,
+            window.rect.h as u32,
+        );
 
-        let canvas = window
+        window_builder
+            .position(window.rect.x as i32, window.rect.y as i32)
+            .opengl()
+            .resizable();
+
+        if window.rect.x == CENTER_SCREEN && window.rect.y == CENTER_SCREEN {
+            window_builder = window_builder.position_centered();
+        }
+
+        let mut window = window_builder.build().map_err(|e| e.to_string()).unwrap();
+
+        let mut canvas = window
             .into_canvas()
             .build()
             .map_err(|e| e.to_string())
             .unwrap();
-        let event_pump = sdl_context.event_pump().map_err(|e| e.to_string()).unwrap();
+        let mut event_pump = sdl_context.event_pump().map_err(|e| e.to_string()).unwrap();
 
-        Window {
-            event_pump,
-            canvas,
-            content: self.content,
-            ttf_context,
-        }
-    }
-}
-
-pub struct Window {
-    canvas: WindowCanvas,
-    event_pump: EventPump,
-    content: Control,
-    ttf_context: Sdl2TtfContext,
-}
-
-impl Window {
-    pub fn show(&mut self) {
         // TODO: fix this magic path bullshit
-        let font = self
-            .ttf_context
+        let font = ttf_context
             .load_font(Path::new("../../src/skin/segoe.ttf"), 16)
             .unwrap();
 
         'running: loop {
-            for event in self.event_pump.poll_iter() {
+            for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. }
                     | Event::KeyDown {
@@ -102,23 +91,7 @@ impl Window {
                 }
             }
 
-            self.content.do_layout(
-                Rect::new(
-                    0.0,
-                    0.0,
-                    self.canvas.window().drawable_size().0 as f32,
-                    self.canvas.window().drawable_size().1 as f32,
-                ),
-                &font,
-            );
-
-            self.content.render(&mut self.canvas);
-            self.canvas.present();
+            canvas.present();
         }
-    }
-
-    pub fn set_content(&mut self, control: Control) {
-        self.content = control;
-        // FIXME: Invalidate layout!
     }
 }
