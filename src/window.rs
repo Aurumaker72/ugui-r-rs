@@ -1,5 +1,6 @@
 extern crate sdl2;
 use crate::core::geo::Rect;
+use crate::core::messages::Message;
 use crate::core::styles::Styles;
 use flagset::FlagSet;
 use sdl2::event::Event;
@@ -7,8 +8,7 @@ use sdl2::keyboard::Keycode;
 use std::collections::HashMap;
 use std::path::Path;
 
-type HWND = usize;
-
+pub type HWND = usize;
 pub const CENTER_SCREEN: f32 = -1.0;
 
 struct Window {
@@ -18,6 +18,17 @@ struct Window {
     styles: FlagSet<Styles>,
     rect: Rect,
     parent: Option<HWND>,
+    procedure: fn(HWND, Message) -> u64,
+}
+
+impl Window {
+    fn top_level(&self) -> bool {
+        self.parent.is_none()
+    }
+}
+
+fn default_proc(hwnd: HWND, message: Message) -> u64 {
+    return 0;
 }
 
 /// The global application context, roughly equivalent to a WinAPI INSTANCE
@@ -34,16 +45,31 @@ impl Ugui {
         styles: FlagSet<Styles>,
         rect: Rect,
         parent: Option<HWND>,
+        procedure: Option<fn(HWND, Message) -> u64>,
     ) -> Option<HWND> {
+        let hwnd = self.windows.len();
+        let mut actual_procedure: fn(HWND, Message) -> u64;
+
+        // All windows need a procedure, so we use the default one if user can't bother to supply one
+        if procedure.is_some() {
+            actual_procedure = procedure.unwrap();
+        } else {
+            actual_procedure = default_proc;
+        }
+
         self.windows.push(Window {
-            hwnd: self.windows.len() + 1,
+            hwnd,
             class,
             caption,
             styles,
             rect,
             parent,
+            procedure: actual_procedure,
         });
-        Some(self.windows.last().unwrap().hwnd)
+
+        actual_procedure(hwnd, Message::Create);
+
+        Some(hwnd)
     }
 
     pub fn show_window(&self, hwnd: HWND) {
@@ -85,16 +111,16 @@ impl Ugui {
         'running: loop {
             for event in event_pump.poll_iter() {
                 match event {
-                    Event::Quit { .. }
-                    | Event::KeyDown {
-                        keycode: Some(Keycode::Escape),
-                        ..
-                    } => break 'running,
+                    Event::Quit { .. } => break 'running,
                     _ => {}
                 }
             }
 
             canvas.present();
+        }
+
+        for window in &self.windows {
+            (window.procedure)(window.hwnd, Message::Destroy);
         }
     }
 }
