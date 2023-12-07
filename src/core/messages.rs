@@ -16,7 +16,8 @@ pub enum Message {
     LmbUp,
 
     /// The mouse is moving while inside the control
-    MouseMove,
+    /// Contains the mouse position relative to the control
+    MouseMove(Point),
 
     /// The control gained focus
     Focus,

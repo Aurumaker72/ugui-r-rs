@@ -163,7 +163,7 @@ impl Ugui {
 
                         // If we have a control at the mouse, we send it mousemove
                         if let Some(control) = self.window_at_point(point) {
-                            (control.procedure)(control.hwnd, Message::MouseMove);
+                            (control.procedure)(control.hwnd, Message::MouseMove(point.sub(control.rect.top_left())));
                         }
                     }
                     _ => {}
