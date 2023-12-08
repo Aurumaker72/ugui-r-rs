@@ -1,18 +1,21 @@
 extern crate sdl2;
 use crate::core::geo::{Point, Rect};
-use crate::core::messages::{Message, PaintContext};
+use crate::core::messages::Message;
 use crate::core::styles::Styles;
 use flagset::FlagSet;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
+use sdl2::render::WindowCanvas;
 use std::collections::HashMap;
 use std::path::Path;
 
 pub type HWND = usize;
+pub type WNDPROC = fn(&mut Ugui, HWND, Message) -> u64;
 pub const CENTER_SCREEN: f32 = -1.0;
 
+#[derive(Clone)]
 struct Window {
     hwnd: HWND,
     class: String,
@@ -20,7 +23,7 @@ struct Window {
     styles: FlagSet<Styles>,
     rect: Rect,
     parent: Option<HWND>,
-    procedure: fn(HWND, Message) -> u64,
+    procedure: WNDPROC,
 }
 
 impl Window {
@@ -29,13 +32,13 @@ impl Window {
     }
 }
 
-fn default_proc(hwnd: HWND, message: Message) -> u64 {
-    // println!("{} {}", hwnd, message);
+fn default_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
+    println!("{} {:?}", hwnd, message);
 
     match message {
-        Message::Paint(mut ctx) => {
-            (ctx.color)(255, 0, 0);
-            (ctx.rect)(Rect::new(0.0, 0.0, ctx.size.x, ctx.size.y));
+        Message::Paint() => {
+            // (ctx.color)(255, 0, 0);
+            // (ctx.rect)(Rect::new(0.0, 0.0, ctx.size.x, ctx.size.y));
         }
         _ => {}
     }
@@ -43,14 +46,18 @@ fn default_proc(hwnd: HWND, message: Message) -> u64 {
 }
 
 /// The global application context, roughly equivalent to a WinAPI INSTANCE
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Ugui {
     windows: Vec<Window>,
 }
 
 impl Ugui {
-    fn window_at_point(&self, point: Point) -> Option<&Window> {
-        self.windows.iter().rev().find(|x| point.inside(x.rect))
+    fn paintcontext_color(&self, window_canvas: &mut WindowCanvas, r: u8, g: u8, b: u8) {}
+    fn window_at_point(windows: &Vec<Window>, point: Point) -> Option<HWND> {
+        if let Some(control) = windows.iter().rev().find(|x| point.inside(x.rect)) {
+            return Some(control.hwnd);
+        }
+        return None;
     }
 
     /// Creates a window with the specified arguments
@@ -72,10 +79,10 @@ impl Ugui {
         styles: FlagSet<Styles>,
         rect: Rect,
         parent: Option<HWND>,
-        procedure: Option<fn(HWND, Message) -> u64>,
+        procedure: Option<WNDPROC>,
     ) -> Option<HWND> {
         let hwnd = self.windows.len();
-        let mut actual_procedure: fn(HWND, Message) -> u64;
+        let mut actual_procedure: WNDPROC;
 
         // All windows need a procedure, so we use the default one if user can't bother to supply one
         if procedure.is_some() {
@@ -94,8 +101,8 @@ impl Ugui {
             procedure: actual_procedure,
         });
 
-        actual_procedure(hwnd, Message::Create);
-        actual_procedure(hwnd, Message::StylesChanged(styles));
+        actual_procedure(self, hwnd, Message::Create);
+        actual_procedure(self, hwnd, Message::StylesChanged(styles));
 
         Some(hwnd)
     }
@@ -109,7 +116,7 @@ impl Ugui {
     /// returns: ()
     pub fn destroy_window(&mut self, hwnd: HWND) {
         let window = &self.windows[hwnd];
-        (window.procedure)(window.hwnd, Message::Destroy);
+        (window.procedure)(self, window.hwnd, Message::Destroy);
         self.windows.remove(hwnd);
     }
 
@@ -135,7 +142,11 @@ impl Ugui {
     /// returns: ()
     pub fn set_window_style(&mut self, hwnd: HWND, styles: FlagSet<Styles>) {
         self.windows[hwnd].styles = styles;
-        (self.windows[hwnd].procedure)(self.windows[hwnd].hwnd, Message::StylesChanged(styles));
+        (self.windows[hwnd].procedure)(
+            self,
+            self.windows[hwnd].hwnd,
+            Message::StylesChanged(styles),
+        );
     }
 
     /// Shows a window, trapping the caller until the window closes
@@ -192,16 +203,6 @@ impl Ugui {
             .load_font(Path::new("../../src/skin/segoe.ttf"), 16)
             .unwrap();
 
-        let paint_context = PaintContext {
-            size: Default::default(),
-            color: Box::new(|r, g, b| {
-                canvas.set_draw_color(Color::RGB(r, g, b));
-            }),
-            rect: Box::new(|rect| {
-                canvas.fill_rect(rect.to_sdl());
-            }),
-        };
-
         'running: loop {
             for event in event_pump.poll_iter() {
                 match event {
@@ -210,26 +211,28 @@ impl Ugui {
                         mouse_btn, x, y, ..
                     } => {
                         let point = Point::new_i(x, y);
-
                         if mouse_btn != MouseButton::Left {
                             break;
                         }
-
                         lmb_down_point = point;
-                        if let Some(control) = self.window_at_point(lmb_down_point) {
+
+                        if let Some(hwnd_at_point) =
+                            Self::window_at_point(&self.windows, lmb_down_point)
+                        {
+                            let control = &self.clone().windows[hwnd_at_point];
                             // If focused HWNDs differ, we unfocus the old one
                             if focused_hwnd.is_some() && focused_hwnd.unwrap() != control.hwnd {
-                                (control.procedure)(control.hwnd, Message::Unfocus);
+                                (control.procedure)(self, control.hwnd, Message::Unfocus);
                                 invalidated_windows.push(control.hwnd);
                             }
 
                             let prev_focused_hwnd = focused_hwnd;
                             focused_hwnd = Some(control.hwnd);
-                            (control.procedure)(control.hwnd, Message::LmbDown);
+                            (control.procedure)(self, control.hwnd, Message::LmbDown);
 
                             // Only send focus message if focus state actually changes after reassignment
                             if focused_hwnd.ne(&prev_focused_hwnd) {
-                                (control.procedure)(control.hwnd, Message::Focus);
+                                (control.procedure)(self, control.hwnd, Message::Focus);
                             }
                         }
                     }
@@ -241,8 +244,11 @@ impl Ugui {
                             break;
                         }
                         // Tell the previously clicked control we left it now
-                        if let Some(control) = self.window_at_point(lmb_down_point) {
-                            (control.procedure)(control.hwnd, Message::LmbUp);
+                        if let Some(hwnd_at_point) =
+                            Self::window_at_point(&self.windows, lmb_down_point)
+                        {
+                            let control = &self.windows[hwnd_at_point];
+                            (control.procedure)(self, control.hwnd, Message::LmbUp);
                         }
                     }
                     Event::MouseMotion {
@@ -251,8 +257,13 @@ impl Ugui {
                         let point = Point::new_i(x, y);
 
                         // If we have a control at the mouse, we send it mousemove
-                        if let Some(control) = self.window_at_point(point) {
+                        if let Some(hwnd_at_point) =
+                            Self::window_at_point(&self.windows, lmb_down_point)
+                        {
+                            let control = &self.windows[hwnd_at_point];
+
                             (control.procedure)(
+                                self,
                                 control.hwnd,
                                 Message::MouseMove(point.sub(control.rect.top_left())),
                             );
@@ -264,13 +275,7 @@ impl Ugui {
 
             for i in 0..invalidated_windows.len() {
                 let wnd = &self.windows[invalidated_windows[i]];
-                (wnd.procedure)(
-                    wnd.hwnd,
-                    Message::Paint(PaintContext {
-                        size: wnd.rect.size(),
-                        ..paint_context
-                    }),
-                );
+                (wnd.procedure)(self, wnd.hwnd, Message::Paint());
             }
 
             canvas.present();
