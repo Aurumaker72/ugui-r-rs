@@ -44,15 +44,6 @@ impl Ugui {
         self.windows.iter().rev().find(|x| point.inside(x.rect))
     }
 
-    fn window_by_hwnd(&self, hwnd: HWND) -> Option<usize> {
-        for i in 0..self.windows.len() {
-            if self.windows[i].hwnd == hwnd {
-                return Some(i);
-            }
-        }
-        return None;
-    }
-
     /// Creates a window with the specified arguments
     ///
     /// # Arguments
@@ -109,7 +100,7 @@ impl Ugui {
     /// returns: FlagSet<Styles> The window's styles
     ///
     pub fn get_window_style(&self, hwnd: HWND) -> FlagSet<Styles> {
-        self.windows[self.window_by_hwnd(hwnd).unwrap()].styles
+        self.windows[hwnd].styles
     }
 
     /// Sets a window's styles and notifies it about the changes
@@ -121,9 +112,8 @@ impl Ugui {
     ///
     /// returns: ()
     pub fn set_window_style(&mut self, hwnd: HWND, styles: FlagSet<Styles>) {
-        let i = self.window_by_hwnd(hwnd).unwrap();
-        self.windows[i].styles = styles;
-        (self.windows[i].procedure)(self.windows[i].hwnd, Message::StylesChanged(styles));
+        self.windows[hwnd].styles = styles;
+        (self.windows[hwnd].procedure)(self.windows[hwnd].hwnd, Message::StylesChanged(styles));
     }
 
     /// Shows a window, trapping the caller until the window closes
@@ -142,10 +132,10 @@ impl Ugui {
     /// ugui.show_window(hwnd);
     /// ```
     pub fn show_window(&self, hwnd: HWND) {
-        let i = self.window_by_hwnd(hwnd).unwrap();
-        let window = &self.windows[i];
+        let window = &self.windows[hwnd];
         let mut lmb_down_point = Point::default();
         let mut focused_hwnd: Option<HWND> = None;
+        let mut invalidated_windows: Vec<HWND> = Default::default();
 
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
@@ -195,6 +185,7 @@ impl Ugui {
                                 // If focused HWNDs differ, we unfocus the old one
                                 if focused_hwnd.is_some() && focused_hwnd.unwrap() != control.hwnd {
                                     (control.procedure)(control.hwnd, Message::Unfocus);
+                                    invalidated_windows.push(control.hwnd);
                                 }
 
                                 let prev_focused_hwnd = focused_hwnd;

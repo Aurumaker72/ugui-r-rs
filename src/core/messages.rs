@@ -1,6 +1,13 @@
-use crate::core::styles::Styles;
 use crate::core::geo::{Point, Rect};
+use crate::core::styles::Styles;
 use flagset::FlagSet;
+
+/// A basic context used by the Paint message to draw a control
+#[derive(Clone, Debug)]
+pub struct PaintContext {
+    pub color: fn(r: u8, g: u8, b: u8),
+    pub rect: fn(rect: Rect),
+}
 
 /// Messages which are sent to controls when application events happen
 #[derive(Clone, Debug)]
@@ -28,7 +35,8 @@ pub enum Message {
     Unfocus,
 
     /// The control needs repainting
-    Paint,
+    /// Contains a context to draw with
+    Paint(PaintContext),
 
     /// The control's styles have changed
     /// Contains the control's new styles
