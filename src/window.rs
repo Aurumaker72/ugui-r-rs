@@ -30,6 +30,14 @@ impl Window {
 
 fn default_proc(hwnd: HWND, message: Message) -> u64 {
     println!("{} {:?}", hwnd, message);
+
+    match message {
+        Message::Paint(ctx) => {
+            (ctx.color)(255, 0, 0);
+            (ctx.rect)(Rect::new(0.0, 0.0, ctx.size.x, ctx.size.y));
+        }
+        _ => {}
+    }
     return 0;
 }
 
@@ -91,6 +99,19 @@ impl Ugui {
         Some(hwnd)
     }
 
+    /// Destroys a window, notifying it prior to the destruction
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    ///
+    /// returns: ()
+    pub fn destroy_window(&mut self, hwnd: HWND) {
+        let window = &self.windows[hwnd];
+        (window.procedure)(window.hwnd, Message::Destroy);
+        self.windows.remove(hwnd);
+    }
+
     /// Gets a window's styles
     ///
     /// # Arguments
@@ -131,7 +152,7 @@ impl Ugui {
     /// let hwnd = ugui.create_window();
     /// ugui.show_window(hwnd);
     /// ```
-    pub fn show_window(&self, hwnd: HWND) {
+    pub fn show_window(&mut self, hwnd: HWND) {
         let window = &self.windows[hwnd];
         let mut lmb_down_point = Point::default();
         let mut focused_hwnd: Option<HWND> = None;
@@ -233,8 +254,8 @@ impl Ugui {
             canvas.present();
         }
 
-        for window in &self.windows {
-            (window.procedure)(window.hwnd, Message::Destroy);
+        for i in 0..self.windows.len() {
+            self.destroy_window(self.windows[i].hwnd);
         }
     }
 }
