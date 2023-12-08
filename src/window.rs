@@ -179,23 +179,25 @@ impl Ugui {
                     } => {
                         let point = Point::new_i(x, y);
 
-                        if mouse_btn == MouseButton::Left {
-                            lmb_down_point = point;
-                            if let Some(control) = self.window_at_point(lmb_down_point) {
-                                // If focused HWNDs differ, we unfocus the old one
-                                if focused_hwnd.is_some() && focused_hwnd.unwrap() != control.hwnd {
-                                    (control.procedure)(control.hwnd, Message::Unfocus);
-                                    invalidated_windows.push(control.hwnd);
-                                }
+                        if mouse_btn != MouseButton::Left {
+                            break;
+                        }
 
-                                let prev_focused_hwnd = focused_hwnd;
-                                focused_hwnd = Some(control.hwnd);
-                                (control.procedure)(control.hwnd, Message::LmbDown);
+                        lmb_down_point = point;
+                        if let Some(control) = self.window_at_point(lmb_down_point) {
+                            // If focused HWNDs differ, we unfocus the old one
+                            if focused_hwnd.is_some() && focused_hwnd.unwrap() != control.hwnd {
+                                (control.procedure)(control.hwnd, Message::Unfocus);
+                                invalidated_windows.push(control.hwnd);
+                            }
 
-                                // Only send focus message if focus state actually changes after reassignment
-                                if focused_hwnd.ne(&prev_focused_hwnd) {
-                                    (control.procedure)(control.hwnd, Message::Focus);
-                                }
+                            let prev_focused_hwnd = focused_hwnd;
+                            focused_hwnd = Some(control.hwnd);
+                            (control.procedure)(control.hwnd, Message::LmbDown);
+
+                            // Only send focus message if focus state actually changes after reassignment
+                            if focused_hwnd.ne(&prev_focused_hwnd) {
+                                (control.procedure)(control.hwnd, Message::Focus);
                             }
                         }
                     }
@@ -203,12 +205,12 @@ impl Ugui {
                         mouse_btn, x, y, ..
                     } => {
                         let point = Point::new_i(x, y);
-
-                        if mouse_btn == MouseButton::Left {
-                            // Tell the previously clicked control we left it now
-                            if let Some(control) = self.window_at_point(lmb_down_point) {
-                                (control.procedure)(control.hwnd, Message::LmbUp);
-                            }
+                        if mouse_btn != MouseButton::Left {
+                            break;
+                        }
+                        // Tell the previously clicked control we left it now
+                        if let Some(control) = self.window_at_point(lmb_down_point) {
+                            (control.procedure)(control.hwnd, Message::LmbUp);
                         }
                     }
                     Event::MouseMotion {
