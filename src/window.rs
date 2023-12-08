@@ -1,11 +1,12 @@
 extern crate sdl2;
 use crate::core::geo::{Point, Rect};
-use crate::core::messages::Message;
+use crate::core::messages::{Message, PaintContext};
 use crate::core::styles::Styles;
 use flagset::FlagSet;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
+use sdl2::pixels::Color;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -29,10 +30,10 @@ impl Window {
 }
 
 fn default_proc(hwnd: HWND, message: Message) -> u64 {
-    println!("{} {:?}", hwnd, message);
+    // println!("{} {}", hwnd, message);
 
     match message {
-        Message::Paint(ctx) => {
+        Message::Paint(mut ctx) => {
             (ctx.color)(255, 0, 0);
             (ctx.rect)(Rect::new(0.0, 0.0, ctx.size.x, ctx.size.y));
         }
@@ -191,6 +192,16 @@ impl Ugui {
             .load_font(Path::new("../../src/skin/segoe.ttf"), 16)
             .unwrap();
 
+        let paint_context = PaintContext {
+            size: Default::default(),
+            color: Box::new(|r, g, b| {
+                canvas.set_draw_color(Color::RGB(r, g, b));
+            }),
+            rect: Box::new(|rect| {
+                canvas.fill_rect(rect.to_sdl());
+            }),
+        };
+
         'running: loop {
             for event in event_pump.poll_iter() {
                 match event {
@@ -249,6 +260,17 @@ impl Ugui {
                     }
                     _ => {}
                 }
+            }
+
+            for i in 0..invalidated_windows.len() {
+                let wnd = &self.windows[invalidated_windows[i]];
+                (wnd.procedure)(
+                    wnd.hwnd,
+                    Message::Paint(PaintContext {
+                        size: wnd.rect.size(),
+                        ..paint_context
+                    }),
+                );
             }
 
             canvas.present();

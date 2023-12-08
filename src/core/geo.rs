@@ -81,6 +81,12 @@ impl Rect {
             y: self.y + self.h,
         }
     }
+    pub fn size(&self) -> Point {
+        Point {
+            x: self.w,
+            y: self.h,
+        }
+    }
     pub fn right(&self) -> f32 {
         self.bottom_right().x
     }

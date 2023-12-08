@@ -3,15 +3,13 @@ use crate::core::styles::Styles;
 use flagset::FlagSet;
 
 /// A basic context used by the Paint message to draw a control
-#[derive(Clone, Debug)]
 pub struct PaintContext {
     pub size: Point,
-    pub color: fn(r: u8, g: u8, b: u8),
-    pub rect: fn(rect: Rect),
+    pub color: Box<dyn FnMut(u8, u8, u8)>,
+    pub rect: Box<dyn FnMut(Rect)>,
 }
 
 /// Messages which are sent to controls when application events happen
-#[derive(Clone, Debug)]
 pub enum Message {
     /// The control has been created
     Create,
