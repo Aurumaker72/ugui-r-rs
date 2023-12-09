@@ -46,16 +46,17 @@ fn default_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
 }
 
 /// The global application context, roughly equivalent to a WinAPI INSTANCE
-#[derive(Clone, Default)]
 pub struct Ugui {
     windows: Vec<Window>,
+    canvas: WindowCanvas,
 }
 
 impl Ugui {
-    fn paintcontext_color(&self, window_canvas: &mut WindowCanvas, r: u8, g: u8, b: u8) {}
-    fn window_at_point(windows: &Vec<Window>, point: Point) -> Option<HWND> {
+    fn paintcontext_color(&self, r: u8, g: u8, b: u8) {}
+
+    fn window_at_point(windows: &[Window], point: Point) -> Option<&Window> {
         if let Some(control) = windows.iter().rev().find(|x| point.inside(x.rect)) {
-            return Some(control.hwnd);
+            return Some(control);
         }
         return None;
     }
@@ -189,14 +190,10 @@ impl Ugui {
             window_builder = window_builder.position_centered();
         }
 
-        let mut window = window_builder.build().map_err(|e| e.to_string()).unwrap();
+        let mut window = window_builder.build().unwrap();
 
-        let mut canvas = window
-            .into_canvas()
-            .build()
-            .map_err(|e| e.to_string())
-            .unwrap();
-        let mut event_pump = sdl_context.event_pump().map_err(|e| e.to_string()).unwrap();
+        self.canvas = window.into_canvas().build().unwrap();
+        let mut event_pump = sdl_context.event_pump().unwrap();
 
         // TODO: fix this magic path bullshit
         let font = ttf_context
@@ -216,10 +213,9 @@ impl Ugui {
                         }
                         lmb_down_point = point;
 
-                        if let Some(hwnd_at_point) =
-                            Self::window_at_point(&self.windows, lmb_down_point)
+                        if let Some(control) =
+                            Self::window_at_point(&mut self.windows, lmb_down_point)
                         {
-                            let control = &self.clone().windows[hwnd_at_point];
                             // If focused HWNDs differ, we unfocus the old one
                             if focused_hwnd.is_some() && focused_hwnd.unwrap() != control.hwnd {
                                 (control.procedure)(self, control.hwnd, Message::Unfocus);
@@ -244,10 +240,8 @@ impl Ugui {
                             break;
                         }
                         // Tell the previously clicked control we left it now
-                        if let Some(hwnd_at_point) =
-                            Self::window_at_point(&self.windows, lmb_down_point)
+                        if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
-                            let control = &self.windows[hwnd_at_point];
                             (control.procedure)(self, control.hwnd, Message::LmbUp);
                         }
                     }
@@ -257,11 +251,8 @@ impl Ugui {
                         let point = Point::new_i(x, y);
 
                         // If we have a control at the mouse, we send it mousemove
-                        if let Some(hwnd_at_point) =
-                            Self::window_at_point(&self.windows, lmb_down_point)
+                        if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
-                            let control = &self.windows[hwnd_at_point];
-
                             (control.procedure)(
                                 self,
                                 control.hwnd,
@@ -278,7 +269,7 @@ impl Ugui {
                 (wnd.procedure)(self, wnd.hwnd, Message::Paint());
             }
 
-            canvas.present();
+            self.canvas.present();
         }
 
         for i in 0..self.windows.len() {
