@@ -32,24 +32,20 @@ impl Window {
     }
 }
 
-fn default_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
+pub fn default_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     println!("{} {:?}", hwnd, message);
 
     match message {
         Message::Create => {
-          ugui.invalidate_window(hwnd);
-        },
+            ugui.invalidate_window(hwnd);
+        }
         Message::Paint => {
-            let rect = ugui.get_window_rect(hwnd).to_sdl();
-            ugui.canvas
-                .as_mut()
-                .unwrap()
-                .set_draw_color(Color::RGB(255, 0, 0));
-            ugui.canvas.as_mut().unwrap().fill_rect(rect);
-        },
+            let rect = ugui.get_window_rect(hwnd);
+            ugui.paint_quad(rect, Color::RGB(255, 0, 0), Color::RGB(255, 55, 55), 1.0);
+        }
         _ => {}
     }
-    return 0;
+    0
 }
 
 /// The global application context, roughly equivalent to a WinAPI INSTANCE
@@ -59,17 +55,15 @@ pub struct Ugui {
     canvas: Option<WindowCanvas>,
     message_queue: Vec<(HWND, Message)>,
 }
-
 impl Ugui {
-    fn paintcontext_color(&self, r: u8, g: u8, b: u8) {}
-
     fn window_at_point(windows: &[Window], point: Point) -> Option<&Window> {
         if let Some(control) = windows.iter().rev().find(|x| point.inside(x.rect)) {
             return Some(control);
         }
         return None;
     }
-
+}
+impl Ugui {
     /// Creates a window with the specified arguments
     ///
     /// # Arguments
@@ -89,17 +83,9 @@ impl Ugui {
         styles: FlagSet<Styles>,
         rect: Rect,
         parent: Option<HWND>,
-        procedure: Option<WNDPROC>,
+        procedure: WNDPROC,
     ) -> Option<HWND> {
         let hwnd = self.windows.len();
-        let mut actual_procedure: WNDPROC;
-
-        // All windows need a procedure, so we use the default one if user can't bother to supply one
-        if procedure.is_some() {
-            actual_procedure = procedure.unwrap();
-        } else {
-            actual_procedure = default_proc;
-        }
 
         self.windows.push(Window {
             hwnd,
@@ -108,13 +94,35 @@ impl Ugui {
             styles,
             rect,
             parent,
-            procedure: actual_procedure,
+            procedure,
         });
 
-        actual_procedure(self, hwnd, Message::Create);
-        actual_procedure(self, hwnd, Message::StylesChanged(styles));
+        self.message_queue.push((hwnd, Message::Create));
+        self.message_queue
+            .push((hwnd, Message::StylesChanged(styles)));
 
         Some(hwnd)
+    }
+
+    pub fn paint_quad(
+        &mut self,
+        rect: Rect,
+        back_color: Color,
+        border_color: Color,
+        border_size: f32,
+    ) {
+        self.canvas.as_mut().unwrap().set_draw_color(border_color);
+        self.canvas
+            .as_mut()
+            .unwrap()
+            .fill_rect(rect.to_sdl())
+            .unwrap();
+        self.canvas.as_mut().unwrap().set_draw_color(back_color);
+        self.canvas
+            .as_mut()
+            .unwrap()
+            .fill_rect(rect.inflate(-1.0).to_sdl())
+            .unwrap();
     }
 
     /// Destroys a window, notifying it prior to the destruction
