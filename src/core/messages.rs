@@ -3,7 +3,7 @@ use crate::core::styles::Styles;
 use flagset::FlagSet;
 
 /// Messages which are sent to controls when application events happen
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Message {
     /// The control has been created
     Create,

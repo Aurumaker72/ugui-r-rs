@@ -36,10 +36,17 @@ fn default_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     println!("{} {:?}", hwnd, message);
 
     match message {
+        Message::Create => {
+          ugui.invalidate_window(hwnd);
+        },
         Message::Paint => {
-            // (ctx.color)(255, 0, 0);
-            // (ctx.rect)(Rect::new(0.0, 0.0, ctx.size.x, ctx.size.y));
-        }
+            let rect = ugui.get_window_rect(hwnd).to_sdl();
+            ugui.canvas
+                .as_mut()
+                .unwrap()
+                .set_draw_color(Color::RGB(255, 0, 0));
+            ugui.canvas.as_mut().unwrap().fill_rect(rect);
+        },
         _ => {}
     }
     return 0;
@@ -50,6 +57,7 @@ fn default_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
 pub struct Ugui {
     windows: Vec<Window>,
     canvas: Option<WindowCanvas>,
+    message_queue: Vec<(HWND, Message)>,
 }
 
 impl Ugui {
@@ -151,6 +159,30 @@ impl Ugui {
         );
     }
 
+    /// Gets a window's bounds
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    ///
+    /// returns: Rect The window's bounds relative to the top-left of the top-level window
+    ///
+    pub fn get_window_rect(&self, hwnd: HWND) -> Rect {
+        self.windows[hwnd].rect
+    }
+
+    /// Invalidates a window, queueing a paint message
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    ///
+    /// returns: ()
+    ///
+    pub fn invalidate_window(&mut self, hwnd: HWND) {
+        self.message_queue.push((hwnd, Message::Paint));
+    }
+
     /// Shows a window, trapping the caller until the window closes
     ///
     /// # Arguments
@@ -201,8 +233,6 @@ impl Ugui {
             .unwrap();
 
         'running: loop {
-            let mut message_queue: Vec<(HWND, Message)> = Vec::default();
-
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. } => break 'running,
@@ -219,17 +249,16 @@ impl Ugui {
                         {
                             // If focused HWNDs differ, we unfocus the old one
                             if focused_hwnd.is_some() && focused_hwnd.unwrap() != control.hwnd {
-                                message_queue.push((control.hwnd, Message::Unfocus));
-                                message_queue.push((control.hwnd, Message::Paint));
+                                self.message_queue.push((control.hwnd, Message::Unfocus));
                             }
 
                             let prev_focused_hwnd = focused_hwnd;
                             focused_hwnd = Some(control.hwnd);
-                            message_queue.push((control.hwnd, Message::LmbDown));
+                            self.message_queue.push((control.hwnd, Message::LmbDown));
 
                             // Only send focus message if focus state actually changes after reassignment
                             if focused_hwnd.ne(&prev_focused_hwnd) {
-                                message_queue.push((control.hwnd, Message::Focus));
+                                self.message_queue.push((control.hwnd, Message::Focus));
                             }
                         }
                     }
@@ -243,7 +272,7 @@ impl Ugui {
                         // Tell the previously clicked control we left it now
                         if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
-                            message_queue.push((control.hwnd, Message::LmbUp));
+                            self.message_queue.push((control.hwnd, Message::LmbUp));
                         }
                     }
                     Event::MouseMotion {
@@ -254,7 +283,7 @@ impl Ugui {
                         // If we have a control at the mouse, we send it mousemove
                         if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
-                            message_queue.push((
+                            self.message_queue.push((
                                 control.hwnd,
                                 Message::MouseMove(point.sub(control.rect.top_left())),
                             ));
@@ -264,11 +293,12 @@ impl Ugui {
                 }
             }
 
-            for item in message_queue {
-                let wnd = &self.windows[item.0];
-                (wnd.procedure)(self, wnd.hwnd, item.1);
+            for i in 0..self.message_queue.len() {
+                let wnd = &self.windows[self.message_queue[i].0];
+                (wnd.procedure)(self, wnd.hwnd, self.message_queue[i].1);
             }
 
+            self.message_queue.clear();
             self.canvas.as_mut().unwrap().present();
         }
 
