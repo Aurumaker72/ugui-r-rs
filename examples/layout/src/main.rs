@@ -25,7 +25,7 @@ fn main() {
         )
         .unwrap();
 
-    let button_hwnd = ugui
+    let button_1_hwnd = ugui
         .create_window(
             "BUTTON".to_string(),
             "Hello World!".to_string(),
@@ -41,5 +41,36 @@ fn main() {
         )
         .unwrap();
 
+    let button_2_hwnd = ugui
+        .create_window(
+            "BUTTON".to_string(),
+            "im a disabled button".to_string(),
+            Styles::Visible.into(),
+            Rect {
+                x: 10.0,
+                y: 40.0,
+                w: 90.0,
+                h: 20.0,
+            },
+            Some(hwnd),
+            button_proc,
+        )
+        .unwrap();
+
+    let button_3_hwnd = ugui
+        .create_window(
+            "BUTTON".to_string(),
+            "im an invisible button".to_string(),
+            Styles::None.into(),
+            Rect {
+                x: 10.0,
+                y: 70.0,
+                w: 90.0,
+                h: 20.0,
+            },
+            Some(hwnd),
+            button_proc,
+        )
+        .unwrap();
     ugui.show_window(hwnd);
 }
