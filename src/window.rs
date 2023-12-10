@@ -24,6 +24,7 @@ struct Window {
     rect: Rect,
     parent: Option<HWND>,
     procedure: WNDPROC,
+    state_0: u64,
 }
 
 impl Window {
@@ -44,6 +45,7 @@ pub fn base_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
         }
         Message::Paint => {
             let rect = ugui.get_window_rect(hwnd);
+
             ugui.paint_quad(rect, Color::RGB(255, 0, 0), Color::RGB(255, 55, 55), 1.0);
         }
         _ => {}
@@ -98,6 +100,7 @@ impl Ugui {
             rect,
             parent,
             procedure,
+            state_0: 0,
         });
 
         self.message_queue.push((hwnd, Message::Create));
@@ -242,6 +245,29 @@ impl Ugui {
     pub fn get_styles(&self, hwnd: HWND) -> FlagSet<Styles> {
         self.windows[hwnd].styles
     }
+
+    /// Gets a window's user data
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    ///
+    /// returns: u64 The user data associated with the window
+    pub fn get_udata(&self, hwnd: HWND) -> u64 {
+        self.windows[hwnd].state_0
+    }
+
+    /// Sets a window's user data
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    /// * `state`: The desired user data
+    ///
+    pub fn set_udata(&mut self, hwnd: HWND, state: u64) {
+        self.windows[hwnd].state_0 = state
+    }
+
     /// Shows a window, trapping the caller until the window closes
     ///
     /// # Arguments
