@@ -1,5 +1,6 @@
 use crate::controls::visual_state::VisualState;
 use crate::core::messages::Message;
+use crate::core::messages::Message::StylesChanged;
 use crate::core::styles::Styles;
 use crate::window::HWND;
 use crate::window::{base_proc, Ugui};
@@ -24,11 +25,19 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
 
     match message {
         Message::LmbDown => {
+            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
+                ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
+                return 0;
+            }
             ugui.set_udata(hwnd, VisualState::Active.to_u64().unwrap());
             ugui.send_message(hwnd, Message::Paint);
             0
         }
         Message::LmbUp => {
+            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
+                ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
+                return 0;
+            }
             let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
 
             if state == VisualState::Hover {
@@ -40,6 +49,10 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             0
         }
         Message::MouseEnter => {
+            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
+                ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
+                return 0;
+            }
             let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
 
             if state == VisualState::Hover {
@@ -51,6 +64,10 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             0
         }
         Message::MouseLeave => {
+            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
+                ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
+                return 0;
+            }
             let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
 
             if state == VisualState::Active {
