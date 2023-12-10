@@ -46,7 +46,7 @@ pub fn base_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
         Message::Paint => {
             let rect = ugui.get_window_rect(hwnd);
 
-            ugui.paint_quad(rect, Color::RGB(255, 0, 0), Color::RGB(255, 55, 55), 1.0);
+            ugui.paint_quad(rect, Color::RGB(240, 240, 240), Color::RGB(240, 240, 240), 1.0);
         }
         _ => {}
     }
@@ -103,8 +103,8 @@ impl Ugui {
             state_0: 0,
         });
 
-        self.message_queue.push((hwnd, Message::Create));
         self.message_queue.push((hwnd, Message::StylesChanged));
+        self.message_queue.push((hwnd, Message::Create));
 
         Some(hwnd)
     }
@@ -285,8 +285,6 @@ impl Ugui {
     /// ```
     pub fn show_window(&mut self, hwnd: HWND) {
         let window = &mut self.windows[hwnd];
-        let mut lmb_down_point = Point::default();
-        let mut focused_hwnd: Option<HWND> = None;
 
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
@@ -315,6 +313,10 @@ impl Ugui {
         let font = ttf_context
             .load_font(Path::new("../../src/skin/segoe.ttf"), 16)
             .unwrap();
+
+        let mut lmb_down_point = Point::default();
+        let mut last_mouse_position = Point::default();
+        let mut focused_hwnd: Option<HWND> = None;
 
         'running: loop {
             for event in event_pump.poll_iter() {
@@ -372,6 +374,25 @@ impl Ugui {
                                 Message::MouseMove(point.sub(control.rect.top_left())),
                             ));
                         }
+
+                        if let Some(control) = Self::window_at_point(&self.windows, point)
+                        {
+                            if let Some(prev_control) = Self::window_at_point(&self.windows, last_mouse_position)
+                            {
+                                if control.hwnd != prev_control.hwnd {
+                                    self.message_queue.push((
+                                        control.hwnd,
+                                        Message::MouseEnter,
+                                    ));
+                                    self.message_queue.push((
+                                        prev_control.hwnd,
+                                        Message::MouseLeave,
+                                    ));
+                                }
+                            }
+                        }
+
+                        last_mouse_position = point;
                     }
                     Event::Window { win_event, .. } => match win_event {
                         WindowEvent::SizeChanged(w, h) => {

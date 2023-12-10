@@ -21,6 +21,12 @@ pub enum Message {
     /// Contains the mouse position relative to the control
     MouseMove(Point),
 
+    /// The mouse has entered the control bounds
+    MouseEnter,
+
+    /// The mouse has left the control bounds
+    MouseLeave,
+
     /// The control gained focus
     Focus,
 

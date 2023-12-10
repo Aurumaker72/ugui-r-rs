@@ -1,5 +1,6 @@
 use crate::controls::visual_state::VisualState;
 use crate::core::messages::Message;
+use crate::core::styles::Styles;
 use crate::window::HWND;
 use crate::window::{base_proc, Ugui};
 use num_traits::{FromPrimitive, ToPrimitive};
@@ -28,6 +29,25 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
         Message::LmbUp => {
             ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
             ugui.send_message(hwnd, Message::Paint);
+            0
+        }
+        Message::MouseEnter => {
+            ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
+            ugui.send_message(hwnd, Message::Paint);
+            0
+        }
+        Message::MouseLeave => {
+            ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
+            ugui.send_message(hwnd, Message::Paint);
+            0
+        }
+        Message::StylesChanged => {
+            let style = ugui.get_styles(hwnd);
+
+            if !style.contains(Styles::Enabled) {
+                ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
+            }
+
             0
         }
         Message::Paint => {
