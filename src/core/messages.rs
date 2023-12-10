@@ -31,6 +31,5 @@ pub enum Message {
     Paint,
 
     /// The control's styles have changed
-    /// Contains the control's new styles
-    StylesChanged(FlagSet<Styles>),
+    StylesChanged,
 }

@@ -37,7 +37,10 @@ pub fn default_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
 
     match message {
         Message::Create => {
-            ugui.invalidate_window(hwnd);
+            ugui.send_message(hwnd, Message::Paint);
+        }
+        Message::StylesChanged => {
+            ugui.send_message(hwnd, Message::Paint);
         }
         Message::Paint => {
             let rect = ugui.get_window_rect(hwnd);
@@ -98,8 +101,7 @@ impl Ugui {
         });
 
         self.message_queue.push((hwnd, Message::Create));
-        self.message_queue
-            .push((hwnd, Message::StylesChanged(styles)));
+        self.message_queue.push((hwnd, Message::StylesChanged));
 
         Some(hwnd)
     }
@@ -134,7 +136,7 @@ impl Ugui {
     /// returns: ()
     pub fn destroy_window(&mut self, hwnd: HWND) {
         let window = &self.windows[hwnd];
-        (window.procedure)(self, window.hwnd, Message::Destroy);
+        self.send_message(hwnd, Message::Destroy);
         self.windows.remove(hwnd);
     }
 
@@ -160,11 +162,7 @@ impl Ugui {
     /// returns: ()
     pub fn set_window_style(&mut self, hwnd: HWND, styles: FlagSet<Styles>) {
         self.windows[hwnd].styles = styles;
-        (self.windows[hwnd].procedure)(
-            self,
-            self.windows[hwnd].hwnd,
-            Message::StylesChanged(styles),
-        );
+        self.send_message(hwnd, Message::StylesChanged);
     }
 
     /// Gets a window's bounds
@@ -177,18 +175,6 @@ impl Ugui {
     ///
     pub fn get_window_rect(&self, hwnd: HWND) -> Rect {
         self.windows[hwnd].rect
-    }
-
-    /// Invalidates a window, queueing a paint message
-    ///
-    /// # Arguments
-    ///
-    /// * `hwnd`: The window's handle
-    ///
-    /// returns: ()
-    ///
-    pub fn invalidate_window(&mut self, hwnd: HWND) {
-        self.message_queue.push((hwnd, Message::Paint));
     }
 
     /// Sends a message to the specified window and processes it immediately
@@ -204,7 +190,6 @@ impl Ugui {
         (self.windows[hwnd].procedure)(self, hwnd, message)
     }
 
-
     /// Gets the window's parent
     ///
     /// # Arguments
@@ -217,6 +202,46 @@ impl Ugui {
         self.windows[hwnd].parent
     }
 
+    /// Gets the window's children
+    /// All children, even those multiple layers deep are retrieved by this function
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    ///
+    /// returns: Vec<HWND> A vector containing the window's children
+    ///
+    pub fn get_children(&self, hwnd: HWND) -> Vec<HWND> {
+        let mut children: Vec<HWND> = vec![];
+
+        for window in &self.windows {
+            let mut current_hwnd = window.hwnd;
+            while true {
+                if self.windows[current_hwnd].parent.is_none() {
+                    break;
+                }
+                if self.windows[current_hwnd].parent.unwrap() == window.hwnd {
+                    children.push(current_hwnd);
+                    break;
+                }
+                current_hwnd = self.windows[current_hwnd].parent.unwrap()
+            }
+        }
+
+        children
+    }
+
+    /// Gets a window's styles
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    ///
+    /// returns: FlagSet<Styles> A bitfield of styles
+    ///
+    pub fn get_styles(&self, hwnd: HWND) -> FlagSet<Styles> {
+        self.windows[hwnd].styles
+    }
     /// Shows a window, trapping the caller until the window closes
     ///
     /// # Arguments

@@ -5,9 +5,6 @@ use sdl2::pixels::Color;
 
 pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     match message {
-        Message::Create => {
-            ugui.invalidate_window(hwnd);
-        }
         Message::Paint => {
             let rect = ugui.get_window_rect(hwnd);
             ugui.paint_quad(rect, Color::RGB(255, 0, 0), Color::RGB(255, 55, 55), 1.0);
