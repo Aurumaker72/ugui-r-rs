@@ -191,6 +191,32 @@ impl Ugui {
         self.message_queue.push((hwnd, Message::Paint));
     }
 
+    /// Sends a message to the specified window and processes it immediately
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    /// * `message`: The message to send
+    ///
+    /// returns: u64 The window's procedure response
+    ///
+    pub fn send_message(&mut self, hwnd: HWND, message: Message) -> u64 {
+        (self.windows[hwnd].procedure)(self, hwnd, message)
+    }
+
+
+    /// Gets the window's parent
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    ///
+    /// returns: Option<HWND> The window's parent, or None if the window is a top-level window
+    ///
+    pub fn get_parent(&self, hwnd: HWND) -> Option<HWND> {
+        self.windows[hwnd].parent
+    }
+
     /// Shows a window, trapping the caller until the window closes
     ///
     /// # Arguments
