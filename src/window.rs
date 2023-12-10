@@ -32,7 +32,7 @@ impl Window {
     }
 }
 
-pub fn default_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
+pub fn base_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     println!("{} {:?}", hwnd, message);
 
     match message {
@@ -349,7 +349,6 @@ impl Ugui {
                     }
                     Event::Window { win_event, .. } => match win_event {
                         WindowEvent::SizeChanged(w, h) => {
-
                             // Update this top-level window's dimensions
                             self.windows[hwnd].rect.w = w as f32;
                             self.windows[hwnd].rect.h = h as f32;

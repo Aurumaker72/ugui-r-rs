@@ -4,7 +4,7 @@ use ugui_r_rs::core::messages::Message;
 use ugui_r_rs::core::styles::Styles;
 use ugui_r_rs::window::CENTER_SCREEN;
 use ugui_r_rs::window::HWND;
-use ugui_r_rs::window::{default_proc, Ugui};
+use ugui_r_rs::window::{base_proc, Ugui};
 
 fn main() {
     let mut ugui = Ugui::default();
@@ -21,7 +21,7 @@ fn main() {
                 h: 480.0,
             },
             None,
-            default_proc,
+            base_proc,
         )
         .unwrap();
 
