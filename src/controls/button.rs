@@ -20,6 +20,8 @@ fn hex(str: &str) -> Color {
 }
 
 pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
+    println!("{} {:?}", hwnd, message);
+
     match message {
         Message::LmbDown => {
             ugui.set_udata(hwnd, VisualState::Active.to_u64().unwrap());
@@ -27,17 +29,35 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             0
         }
         Message::LmbUp => {
-            ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
+            let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
+
+            if state == VisualState::Hover {
+                ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
+            } else {
+                ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
+            }
             ugui.send_message(hwnd, Message::Paint);
             0
         }
         Message::MouseEnter => {
-            ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
+            let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
+
+            if state == VisualState::Hover {
+                ugui.set_udata(hwnd, VisualState::Active.to_u64().unwrap());
+            } else {
+                ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
+            }
             ugui.send_message(hwnd, Message::Paint);
             0
         }
         Message::MouseLeave => {
-            ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
+            let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
+
+            if state == VisualState::Active {
+                ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
+            } else {
+                ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
+            }
             ugui.send_message(hwnd, Message::Paint);
             0
         }

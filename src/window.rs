@@ -34,8 +34,6 @@ impl Window {
 }
 
 pub fn base_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
-    println!("{} {:?}", hwnd, message);
-
     match message {
         Message::Create => {
             ugui.send_message(hwnd, Message::Paint);
@@ -46,7 +44,12 @@ pub fn base_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
         Message::Paint => {
             let rect = ugui.get_window_rect(hwnd);
 
-            ugui.paint_quad(rect, Color::RGB(240, 240, 240), Color::RGB(240, 240, 240), 1.0);
+            ugui.paint_quad(
+                rect,
+                Color::RGB(240, 240, 240),
+                Color::RGB(240, 240, 240),
+                1.0,
+            );
         }
         _ => {}
     }
@@ -375,19 +378,14 @@ impl Ugui {
                             ));
                         }
 
-                        if let Some(control) = Self::window_at_point(&self.windows, point)
-                        {
-                            if let Some(prev_control) = Self::window_at_point(&self.windows, last_mouse_position)
+                        if let Some(control) = Self::window_at_point(&self.windows, point) {
+                            if let Some(prev_control) =
+                                Self::window_at_point(&self.windows, last_mouse_position)
                             {
                                 if control.hwnd != prev_control.hwnd {
-                                    self.message_queue.push((
-                                        control.hwnd,
-                                        Message::MouseEnter,
-                                    ));
-                                    self.message_queue.push((
-                                        prev_control.hwnd,
-                                        Message::MouseLeave,
-                                    ));
+                                    self.message_queue.push((control.hwnd, Message::MouseEnter));
+                                    self.message_queue
+                                        .push((prev_control.hwnd, Message::MouseLeave));
                                 }
                             }
                         }
