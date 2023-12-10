@@ -36,7 +36,7 @@ fn default_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     println!("{} {:?}", hwnd, message);
 
     match message {
-        Message::Paint() => {
+        Message::Paint => {
             // (ctx.color)(255, 0, 0);
             // (ctx.rect)(Rect::new(0.0, 0.0, ctx.size.x, ctx.size.y));
         }
@@ -46,9 +46,10 @@ fn default_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
 }
 
 /// The global application context, roughly equivalent to a WinAPI INSTANCE
+#[derive(Default)]
 pub struct Ugui {
     windows: Vec<Window>,
-    canvas: WindowCanvas,
+    canvas: Option<WindowCanvas>,
 }
 
 impl Ugui {
@@ -169,7 +170,6 @@ impl Ugui {
         let window = &self.windows[hwnd];
         let mut lmb_down_point = Point::default();
         let mut focused_hwnd: Option<HWND> = None;
-        let mut invalidated_windows: Vec<HWND> = Default::default();
 
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
@@ -192,7 +192,7 @@ impl Ugui {
 
         let mut window = window_builder.build().unwrap();
 
-        self.canvas = window.into_canvas().build().unwrap();
+        self.canvas = Some(window.into_canvas().build().unwrap());
         let mut event_pump = sdl_context.event_pump().unwrap();
 
         // TODO: fix this magic path bullshit
@@ -201,6 +201,8 @@ impl Ugui {
             .unwrap();
 
         'running: loop {
+            let mut message_queue: Vec<(HWND, Message)> = Vec::default();
+
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. } => break 'running,
@@ -213,22 +215,21 @@ impl Ugui {
                         }
                         lmb_down_point = point;
 
-                        if let Some(control) =
-                            Self::window_at_point(&mut self.windows, lmb_down_point)
+                        if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
                             // If focused HWNDs differ, we unfocus the old one
                             if focused_hwnd.is_some() && focused_hwnd.unwrap() != control.hwnd {
-                                (control.procedure)(self, control.hwnd, Message::Unfocus);
-                                invalidated_windows.push(control.hwnd);
+                                message_queue.push((control.hwnd, Message::Unfocus));
+                                message_queue.push((control.hwnd, Message::Paint));
                             }
 
                             let prev_focused_hwnd = focused_hwnd;
                             focused_hwnd = Some(control.hwnd);
-                            (control.procedure)(self, control.hwnd, Message::LmbDown);
+                            message_queue.push((control.hwnd, Message::LmbDown));
 
                             // Only send focus message if focus state actually changes after reassignment
                             if focused_hwnd.ne(&prev_focused_hwnd) {
-                                (control.procedure)(self, control.hwnd, Message::Focus);
+                                message_queue.push((control.hwnd, Message::Focus));
                             }
                         }
                     }
@@ -242,7 +243,7 @@ impl Ugui {
                         // Tell the previously clicked control we left it now
                         if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
-                            (control.procedure)(self, control.hwnd, Message::LmbUp);
+                            message_queue.push((control.hwnd, Message::LmbUp));
                         }
                     }
                     Event::MouseMotion {
@@ -253,23 +254,22 @@ impl Ugui {
                         // If we have a control at the mouse, we send it mousemove
                         if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
-                            (control.procedure)(
-                                self,
+                            message_queue.push((
                                 control.hwnd,
                                 Message::MouseMove(point.sub(control.rect.top_left())),
-                            );
+                            ));
                         }
                     }
                     _ => {}
                 }
             }
 
-            for i in 0..invalidated_windows.len() {
-                let wnd = &self.windows[invalidated_windows[i]];
-                (wnd.procedure)(self, wnd.hwnd, Message::Paint());
+            for item in message_queue {
+                let wnd = &self.windows[item.0];
+                (wnd.procedure)(self, wnd.hwnd, item.1);
             }
 
-            self.canvas.present();
+            self.canvas.as_mut().unwrap().present();
         }
 
         for i in 0..self.windows.len() {

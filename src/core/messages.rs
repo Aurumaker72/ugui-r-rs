@@ -28,7 +28,7 @@ pub enum Message {
     Unfocus,
 
     /// The control needs repainting
-    Paint(),
+    Paint,
 
     /// The control's styles have changed
     /// Contains the control's new styles
