@@ -3,7 +3,7 @@ use crate::core::geo::{Point, Rect};
 use crate::core::messages::Message;
 use crate::core::styles::Styles;
 use flagset::FlagSet;
-use sdl2::event::Event;
+use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
@@ -258,7 +258,7 @@ impl Ugui {
     /// ugui.show_window(hwnd);
     /// ```
     pub fn show_window(&mut self, hwnd: HWND) {
-        let window = &self.windows[hwnd];
+        let window = &mut self.windows[hwnd];
         let mut lmb_down_point = Point::default();
         let mut focused_hwnd: Option<HWND> = None;
 
@@ -281,9 +281,8 @@ impl Ugui {
             window_builder = window_builder.position_centered();
         }
 
-        let mut window = window_builder.build().unwrap();
-
-        self.canvas = Some(window.into_canvas().build().unwrap());
+        let mut sdl_window = window_builder.build().unwrap();
+        self.canvas = Some(sdl_window.into_canvas().build().unwrap());
         let mut event_pump = sdl_context.event_pump().unwrap();
 
         // TODO: fix this magic path bullshit
@@ -348,6 +347,19 @@ impl Ugui {
                             ));
                         }
                     }
+                    Event::Window { win_event, .. } => match win_event {
+                        WindowEvent::SizeChanged(w, h) => {
+
+                            // Update this top-level window's dimensions
+                            self.windows[hwnd].rect.w = w as f32;
+                            self.windows[hwnd].rect.h = h as f32;
+
+                            for window in &self.windows {
+                                self.message_queue.push((window.hwnd, Message::Paint));
+                            }
+                        }
+                        _ => {}
+                    },
                     _ => {}
                 }
             }
