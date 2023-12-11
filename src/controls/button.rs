@@ -1,9 +1,10 @@
+use crate::core::ugui::Ugui;
 use crate::controls::visual_state::VisualState;
 use crate::core::messages::Message;
 use crate::core::messages::Message::StylesChanged;
 use crate::core::styles::Styles;
-use crate::window::HWND;
-use crate::window::{base_proc, Ugui};
+use crate::HWND;
+use crate::window::{base_proc};
 use num_traits::{FromPrimitive, ToPrimitive};
 use sdl2::controller::Button;
 use sdl2::pixels::Color;
