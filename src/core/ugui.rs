@@ -1,11 +1,11 @@
 extern crate sdl2;
-use crate::WNDPROC;
 use crate::core::geo::Alignment;
 use crate::core::geo::{Point, Rect};
 use crate::core::messages::Message;
 use crate::core::styles::Styles;
 use crate::window::Window;
 use crate::HWND;
+use crate::WNDPROC;
 use flagset::FlagSet;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
@@ -23,7 +23,7 @@ pub const CENTER_SCREEN: f32 = -1.0;
 pub struct Ugui<'a> {
     windows: Vec<Window>,
     canvas: Option<WindowCanvas>,
-    ttf_context: Option<Sdl2TtfContext>,
+    ttf_context: Option<&'a Sdl2TtfContext>,
     message_queue: Vec<(HWND, Message)>,
     pub default_font: Option<Font<'a, 'static>>,
 }
@@ -325,7 +325,9 @@ impl<'a> Ugui<'a> {
 
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
-        self.ttf_context = Some(sdl2::ttf::init().unwrap());
+
+        let ttf = sdl2::ttf::init().unwrap();
+        self.ttf_context = Some(&ttf);
 
         let mut window_builder = &mut video_subsystem.window(
             &window.caption,
