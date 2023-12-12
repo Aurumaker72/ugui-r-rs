@@ -50,6 +50,10 @@ impl Ugui {
         }
         panic!("No window with specified HWND found");
     }
+    fn root_hwnd(&self) -> HWND {
+        // NOTE: This is guaranteed
+        self.windows[0].hwnd
+    }
 }
 
 impl Ugui {
@@ -154,7 +158,7 @@ impl Ugui {
         if message == Message::Paint {
             self.needs_swap = true;
         }
-        (Ugui::window_from_hwnd(&self.windows, hwnd).procedure)(self, hwnd, message)
+        (Ugui::window_from_hwnd(&self.windows, hwnd).procedure)(self, self.root_hwnd(), hwnd, message)
     }
 
     /// Gets the window's parent
@@ -518,7 +522,6 @@ impl Ugui {
             self.message_queue.clear();
 
             if self.needs_swap {
-                println!("Swapping");
                 self.canvas.as_mut().unwrap().present();
                 self.needs_swap = false;
             }

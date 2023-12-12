@@ -27,26 +27,3 @@ pub(crate) struct Window {
     pub procedure: WNDPROC,
     pub state_0: u64,
 }
-
-pub fn base_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
-    match message {
-        Message::Create => {
-            ugui.send_message(hwnd, Message::Paint);
-        }
-        Message::StylesChanged => {
-            ugui.send_message(hwnd, Message::Paint);
-        }
-        Message::Paint => {
-            let rect = ugui.get_window_rect(hwnd);
-
-            ugui.paint_quad(
-                rect,
-                Color::RGB(240, 240, 240),
-                Color::RGB(240, 240, 240),
-                1.0,
-            );
-        }
-        _ => {}
-    }
-    0
-}

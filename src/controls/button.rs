@@ -1,10 +1,9 @@
-use crate::core::ugui::Ugui;
 use crate::controls::visual_state::VisualState;
 use crate::core::messages::Message;
 use crate::core::messages::Message::StylesChanged;
 use crate::core::styles::Styles;
+use crate::core::ugui::Ugui;
 use crate::HWND;
-use crate::window::{base_proc};
 use num_traits::{FromPrimitive, ToPrimitive};
 use sdl2::controller::Button;
 use sdl2::pixels::Color;
@@ -21,10 +20,28 @@ fn hex(str: &str) -> Color {
     )
 }
 
-pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
-    println!("{} {:?}", hwnd, message);
-
+/// The message procedure implementation for a button
+///
+/// # Arguments
+///
+/// * `ugui`: A reference to the owner Ugui object
+/// * `root_hwnd`: The root window's handle
+/// * `hwnd`: The current window's handle
+/// * `message`: The message
+///
+/// returns: u64 The message response
+pub fn button_proc(ugui: &mut Ugui, root_hwnd: HWND, hwnd: HWND, message: Message) -> u64 {
     match message {
+        Message::Create => {
+            ugui.send_message(hwnd, Message::Paint);
+        }
+        Message::StylesChanged => {
+            let style = ugui.get_styles(hwnd);
+
+            if !style.contains(Styles::Enabled) {
+                ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
+            }
+        }
         Message::LmbDown => {
             if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
                 ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
@@ -33,7 +50,6 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             ugui.set_udata(hwnd, VisualState::Active.to_u64().unwrap());
             ugui.send_message(hwnd, Message::Paint);
             ugui.capture_mouse(hwnd);
-            0
         }
         Message::LmbUp => {
             if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
@@ -49,7 +65,6 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             }
             ugui.send_message(hwnd, Message::Paint);
             ugui.uncapture_mouse(hwnd);
-            0
         }
         Message::MouseEnter => {
             if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
@@ -64,7 +79,6 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
             }
             ugui.send_message(hwnd, Message::Paint);
-            0
         }
         Message::MouseLeave => {
             if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
@@ -79,16 +93,6 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
             }
             ugui.send_message(hwnd, Message::Paint);
-            0
-        }
-        Message::StylesChanged => {
-            let style = ugui.get_styles(hwnd);
-
-            if !style.contains(Styles::Enabled) {
-                ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
-            }
-
-            0
         }
         Message::Paint => {
             let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
@@ -102,8 +106,8 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             ]);
 
             ugui.paint_quad(rect, colors[&state].0, colors[&state].1, 1.0);
-            0
         }
-        _ => base_proc(ugui, hwnd, message),
+        _ => {}
     }
+    0
 }
