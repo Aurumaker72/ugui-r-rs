@@ -508,6 +508,7 @@ impl Ugui {
                 }
             }
 
+
             for message_pair in self.message_queue.clone() {
                 let window = Ugui::window_from_hwnd(&self.windows, message_pair.0);
                 (window.procedure)(self, message_pair.0, message_pair.1);
@@ -517,7 +518,7 @@ impl Ugui {
             self.canvas.as_mut().unwrap().present();
         }
 
-        for window in self.windows.clone() {
+        for window in self.windows.clone().iter().rev() {
             self.destroy_window(window.hwnd);
         }
     }
