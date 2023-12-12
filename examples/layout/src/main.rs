@@ -73,5 +73,21 @@ fn main() {
             button_proc,
         )
         .unwrap();
+
+    let button_4_hwnd = ugui
+        .create_window(
+            "BUTTON".to_string(),
+            "Hello World asdsadads!".to_string(),
+            Styles::Visible | Styles::Enabled,
+            Rect {
+                x: 120.0,
+                y: 10.0,
+                w: 120.0,
+                h: 20.0,
+            },
+            Some(hwnd),
+            button_proc,
+        )
+        .unwrap();
     ugui.show_window(hwnd);
 }
