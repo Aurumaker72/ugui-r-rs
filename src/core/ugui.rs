@@ -33,6 +33,21 @@ impl Ugui {
         }
         return None;
     }
+
+    fn window_from_hwnd(windows: &[Window], hwnd: HWND) -> &Window {
+        if let Some(window) = windows.iter().find(|x| x.hwnd == hwnd) {
+            return window;
+        }
+        panic!("No window with specified HWND found");
+    }
+    fn window_from_hwnd_mut(windows: &mut [Window], hwnd: HWND) -> &mut Window {
+        for i in 0..windows.len() {
+            if windows[i].hwnd == hwnd {
+                return &mut windows[i];
+            }
+        }
+        panic!("No window with specified HWND found");
+    }
 }
 
 impl Ugui {
@@ -81,12 +96,10 @@ impl Ugui {
     /// # Arguments
     ///
     /// * `hwnd`: The window's handle
-    ///
-    /// returns: ()
     pub fn destroy_window(&mut self, hwnd: HWND) {
-        let window = &self.windows[hwnd];
-        self.send_message(hwnd, Message::Destroy);
-        self.windows.remove(hwnd);
+        let window = Ugui::window_from_hwnd(&self.windows, hwnd);
+        self.send_message(window.hwnd, Message::Destroy);
+        self.windows.iter().filter(|x| x.hwnd != hwnd);
     }
 
     /// Gets a window's styles
@@ -98,7 +111,7 @@ impl Ugui {
     /// returns: FlagSet<Styles> The window's styles
     ///
     pub fn get_window_style(&self, hwnd: HWND) -> FlagSet<Styles> {
-        self.windows[hwnd].styles
+        Ugui::window_from_hwnd(&self.windows, hwnd).styles
     }
 
     /// Sets a window's styles and notifies it about the changes
@@ -108,9 +121,9 @@ impl Ugui {
     /// * `hwnd`: The window's handle
     /// * `styles`: The styles
     ///
-    /// returns: ()
     pub fn set_window_style(&mut self, hwnd: HWND, styles: FlagSet<Styles>) {
-        self.windows[hwnd].styles = styles;
+        let window = Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
+        window.styles = styles;
         self.send_message(hwnd, Message::StylesChanged);
     }
 
@@ -123,7 +136,7 @@ impl Ugui {
     /// returns: Rect The window's bounds relative to the top-left of the top-level window
     ///
     pub fn get_window_rect(&self, hwnd: HWND) -> Rect {
-        self.windows[hwnd].rect
+        Ugui::window_from_hwnd(&self.windows, hwnd).rect
     }
 
     /// Sends a message to the specified window and processes it immediately
@@ -136,7 +149,7 @@ impl Ugui {
     /// returns: u64 The window's procedure response
     ///
     pub fn send_message(&mut self, hwnd: HWND, message: Message) -> u64 {
-        (self.windows[hwnd].procedure)(self, hwnd, message)
+        (Ugui::window_from_hwnd(&self.windows, hwnd).procedure)(self, hwnd, message)
     }
 
     /// Gets the window's parent
@@ -148,7 +161,7 @@ impl Ugui {
     /// returns: Option<HWND> The window's parent, or None if the window is a top-level window
     ///
     pub fn get_parent(&self, hwnd: HWND) -> Option<HWND> {
-        self.windows[hwnd].parent
+        Ugui::window_from_hwnd(&self.windows, hwnd).parent
     }
 
     /// Gets the window's children
@@ -166,14 +179,15 @@ impl Ugui {
         for window in &self.windows {
             let mut current_hwnd = window.hwnd;
             while true {
-                if self.windows[current_hwnd].parent.is_none() {
+                let current_window = Ugui::window_from_hwnd(&self.windows, current_hwnd);
+                if current_window.parent.is_none() {
                     break;
                 }
-                if self.windows[current_hwnd].parent.unwrap() == window.hwnd {
+                if current_window.parent.unwrap() == window.hwnd {
                     children.push(current_hwnd);
                     break;
                 }
-                current_hwnd = self.windows[current_hwnd].parent.unwrap()
+                current_hwnd = current_window.parent.unwrap()
             }
         }
 
@@ -189,7 +203,7 @@ impl Ugui {
     /// returns: FlagSet<Styles> A bitfield of styles
     ///
     pub fn get_styles(&self, hwnd: HWND) -> FlagSet<Styles> {
-        self.windows[hwnd].styles
+        Ugui::window_from_hwnd(&self.windows, hwnd).styles
     }
 
     /// Gets a window's user data
@@ -200,7 +214,7 @@ impl Ugui {
     ///
     /// returns: u64 The user data associated with the window
     pub fn get_udata(&self, hwnd: HWND) -> u64 {
-        self.windows[hwnd].state_0
+        Ugui::window_from_hwnd(&self.windows, hwnd).state_0
     }
 
     /// Sets a window's user data
@@ -211,7 +225,7 @@ impl Ugui {
     /// * `state`: The desired user data
     ///
     pub fn set_udata(&mut self, hwnd: HWND, state: u64) {
-        self.windows[hwnd].state_0 = state
+        Ugui::window_from_hwnd_mut(&mut self.windows, hwnd).state_0 = state
     }
 
     /// Captures the mouse, receiving all of its events and preventing propagation to other controls
@@ -454,9 +468,7 @@ impl Ugui {
                             // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
                             self.message_queue.push((
                                 control.hwnd,
-                                Message::MouseMove(
-                                    point.sub(control.rect.top_left()),
-                                ),
+                                Message::MouseMove(point.sub(control.rect.top_left())),
                             ));
 
                             if let Some(prev_control) =
