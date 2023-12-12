@@ -16,6 +16,7 @@ use sdl2::render::WindowCanvas;
 use sdl2::ttf::{Font, Sdl2TtfContext};
 use std::collections::HashMap;
 use std::path::Path;
+use log::info;
 
 /// An application, roughly equivalent to a top-level window with a message loop and many child windows.
 #[derive(Default)]
@@ -30,7 +31,11 @@ pub struct Ugui {
 
 impl Ugui {
     fn window_at_point(windows: &[Window], point: Point) -> Option<&Window> {
-        if let Some(control) = windows.iter().rev().find(|x| point.inside(x.rect)) {
+        if let Some(control) = windows
+            .iter()
+            .rev()
+            .find(|x| point.inside(x.rect) && x.styles.contains(Styles::Visible))
+        {
             return Some(control);
         }
         return None;
@@ -49,6 +54,19 @@ impl Ugui {
             }
         }
         panic!("No window with specified HWND found");
+    }
+
+    /// Verifies that the mouse capture is owned by a valid candidate control
+    fn verify_mouse_capture(&mut self) {
+        if let Some(hwnd) = self.captured_hwnd {
+            let window = Ugui::window_from_hwnd(&self.windows, hwnd);
+
+            if !window.styles.contains(Styles::Enabled) || !window.styles.contains(Styles::Visible)
+            {
+                info!("Captured control ({}) had its capture forcefully removed", hwnd);
+                self.captured_hwnd = None;
+            }
+        }
     }
 }
 
@@ -109,6 +127,7 @@ impl Ugui {
         let window = Ugui::window_from_hwnd(&self.windows, hwnd);
         self.send_message(window.hwnd, Message::Destroy);
         self.windows.iter().filter(|x| x.hwnd != hwnd);
+        self.verify_mouse_capture();
     }
 
     /// Gets a window's styles
@@ -133,6 +152,7 @@ impl Ugui {
     pub fn set_window_style(&mut self, hwnd: HWND, styles: FlagSet<Styles>) {
         let window = Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
         window.styles = styles;
+        // FIXME: Is it ok to just force a paint here? Isn't this supposed to go onto the queue?
         self.send_message(hwnd, Message::StylesChanged);
         self.send_message(hwnd, Message::Paint);
     }
@@ -159,6 +179,8 @@ impl Ugui {
     /// returns: u64 The window's procedure response
     ///
     pub fn send_message(&mut self, hwnd: HWND, message: Message) -> u64 {
+        self.verify_mouse_capture();
+
         let invisible = !self.get_window_style(hwnd).contains(Styles::Visible);
 
         if message == Message::Paint {
@@ -188,8 +210,6 @@ impl Ugui {
                     (self.windows[i].procedure)(self, self.windows[i].hwnd, Message::Paint);
                 }
                 self.canvas.as_mut().unwrap().set_clip_rect(prev_clip);
-
-                return 0;
             }
         }
 
