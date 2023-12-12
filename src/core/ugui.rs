@@ -8,6 +8,7 @@ use crate::CENTER_SCREEN;
 use crate::HWND;
 use crate::WNDPROC;
 use flagset::FlagSet;
+use log::info;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
@@ -16,7 +17,6 @@ use sdl2::render::WindowCanvas;
 use sdl2::ttf::{Font, Sdl2TtfContext};
 use std::collections::HashMap;
 use std::path::Path;
-use log::info;
 
 /// An application, roughly equivalent to a top-level window with a message loop and many child windows.
 #[derive(Default)]
@@ -63,7 +63,10 @@ impl Ugui {
 
             if !window.styles.contains(Styles::Enabled) || !window.styles.contains(Styles::Visible)
             {
-                info!("Captured control ({}) had its capture forcefully removed", hwnd);
+                info!(
+                    "Captured control ({}) had its capture forcefully removed",
+                    hwnd
+                );
                 self.captured_hwnd = None;
             }
         }
@@ -494,14 +497,17 @@ impl Ugui {
                         if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
                             // If focused HWNDs differ, we unfocus the old one
-                            if focused_hwnd.is_some() && focused_hwnd.unwrap() != control.hwnd {
+                            if focused_hwnd.is_some_and(|x| x != control.hwnd) {
                                 self.message_queue
                                     .push((focused_hwnd.unwrap(), Message::Unfocus));
+                                self.message_queue
+                                    .push((focused_hwnd.unwrap(), Message::Paint));
                             }
 
                             focused_hwnd = Some(control.hwnd);
                             self.message_queue.push((control.hwnd, Message::LmbDown));
                             self.message_queue.push((control.hwnd, Message::Focus));
+                            self.message_queue.push((control.hwnd, Message::Paint));
                         }
                     }
                     Event::MouseButtonUp { mouse_btn, .. } => {

@@ -1,4 +1,6 @@
+use std::ops::BitXor;
 use ugui_r_rs::controls::button::{button_proc, BUTTON_CLICK};
+use ugui_r_rs::controls::textbox::textbox_proc;
 use ugui_r_rs::controls::window::window_proc;
 use ugui_r_rs::core::geo::Rect;
 use ugui_r_rs::core::messages::Message;
@@ -17,7 +19,14 @@ fn main() {
             }
             Message::User(source, kind) => match kind {
                 BUTTON_CLICK => {
-                    ugui.set_window_style(source, Styles::None.into())
+                    println!("Clicked {}", source);
+                    if source == 1 {
+                        ugui.set_window_style(source, Styles::None.into())
+                    }
+                    if source == 4 {
+                        let style = ugui.get_window_style(source);
+                        ugui.set_window_style(source, style.bitxor(Styles::Enabled))
+                    }
                 }
                 _ => {}
             },
@@ -119,6 +128,22 @@ fn main() {
             },
             Some(hwnd),
             button_proc,
+        )
+        .unwrap();
+
+    let edit_1_hwnd = ugui
+        .create_window(
+            "TEXTBOX".to_string(),
+            "aadssd".to_string(),
+            Styles::Visible | Styles::Enabled,
+            Rect {
+                x: 200.0,
+                y: 50.0,
+                w: 120.0,
+                h: 23.0,
+            },
+            Some(hwnd),
+            textbox_proc,
         )
         .unwrap();
     ugui.show_window(hwnd);
