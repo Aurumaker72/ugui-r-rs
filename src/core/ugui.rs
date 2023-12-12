@@ -467,8 +467,10 @@ impl Ugui {
 
             // We do mouse move event checking here, since MouseMotion event is very unreliable
             {
-                // If we have a captured control, it gets MouseMove unconditionally and everything else is ignored
+                // If we have a captured control, it gets special treatment
                 if let Some(captured_hwnd) = self.captured_hwnd {
+                    let captured_window = Ugui::window_from_hwnd(&self.windows, captured_hwnd);
+                    // 1. Send MouseMove unconditionally
                     self.message_queue.push((
                         captured_hwnd,
                         Message::MouseMove(
@@ -479,6 +481,20 @@ impl Ugui {
                             ),
                         ),
                     ));
+
+                    // 2. Send MouseEnter/Leave based solely off of its own client rect
+                    if mouse_point.inside(captured_window.rect)
+                        && !last_mouse_position.inside(captured_window.rect)
+                    {
+                        self.message_queue
+                            .push((captured_hwnd, Message::MouseEnter));
+                    }
+                    if !mouse_point.inside(captured_window.rect)
+                        && last_mouse_position.inside(captured_window.rect)
+                    {
+                        self.message_queue
+                            .push((captured_hwnd, Message::MouseLeave));
+                    }
                 } else {
                     if let Some(control) = Self::window_at_point(&self.windows, mouse_point) {
                         // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
