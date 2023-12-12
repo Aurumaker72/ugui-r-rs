@@ -6,6 +6,7 @@ flags! {
         None,
         Visible,
         Enabled,
+        Focusable,
     }
 }
 

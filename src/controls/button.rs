@@ -4,12 +4,14 @@ use crate::core::messages::Message::StylesChanged;
 use crate::core::styles::{hex_color, Styles};
 use crate::core::ugui::Ugui;
 use crate::HWND;
+use flagset::FlagSet;
 use num_traits::{FromPrimitive, ToPrimitive};
 use sdl2::controller::Button;
 use sdl2::pixels::Color;
 use std::collections::HashMap;
 
 pub const BUTTON_CLICK: u64 = 50;
+pub const BUTTON_STYLE: FlagSet<Styles> = Styles::Visible | Styles::Enabled | Styles::Focusable;
 
 /// The message procedure implementation for a button
 ///
@@ -87,10 +89,22 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             let rect = ugui.get_window_rect(hwnd);
 
             let colors = HashMap::from([
-                (VisualState::Normal, (hex_color("#E1E1E1"), hex_color("#ADADAD"))),
-                (VisualState::Hover, (hex_color("#E5F1FB"), hex_color("#0078D7"))),
-                (VisualState::Active, (hex_color("#CCE4F7"), hex_color("#005499"))),
-                (VisualState::Disabled, (hex_color("#CCCCCC"), hex_color("#BFBFBF"))),
+                (
+                    VisualState::Normal,
+                    (hex_color("#E1E1E1"), hex_color("#ADADAD")),
+                ),
+                (
+                    VisualState::Hover,
+                    (hex_color("#E5F1FB"), hex_color("#0078D7")),
+                ),
+                (
+                    VisualState::Active,
+                    (hex_color("#CCE4F7"), hex_color("#005499")),
+                ),
+                (
+                    VisualState::Disabled,
+                    (hex_color("#CCCCCC"), hex_color("#BFBFBF")),
+                ),
             ]);
 
             ugui.paint_quad(rect, colors[&state].0, colors[&state].1, 1.0);

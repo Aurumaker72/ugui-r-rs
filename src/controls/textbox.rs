@@ -4,12 +4,14 @@ use crate::core::messages::Message::StylesChanged;
 use crate::core::styles::{hex_color, Styles};
 use crate::core::ugui::Ugui;
 use crate::HWND;
+use flagset::FlagSet;
 use num_traits::{FromPrimitive, ToPrimitive};
 use sdl2::controller::Button;
 use sdl2::pixels::Color;
 use std::collections::HashMap;
 
 pub const TEXTBOX_CHANGED: u64 = 51;
+pub const TEXTBOX_STYLE: FlagSet<Styles> = Styles::Visible | Styles::Enabled | Styles::Focusable;
 
 /// The message procedure implementation for a textbox
 ///
@@ -35,6 +37,7 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 return 0;
             }
             ugui.set_udata(hwnd, VisualState::Active.to_u64().unwrap());
+            ugui.send_message(hwnd, Message::Paint);
         }
         Message::Unfocus => {
             if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
@@ -42,6 +45,7 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 return 0;
             }
             ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
+            ugui.send_message(hwnd, Message::Paint);
         }
         Message::MouseMove => {
             // TODO: Caret control

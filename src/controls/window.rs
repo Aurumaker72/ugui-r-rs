@@ -1,5 +1,10 @@
+use crate::core::styles::Styles;
 use crate::*;
+use flagset::FlagSet;
 use sdl2::pixels::Color;
+
+pub const WINDOW_STYLE: FlagSet<Styles> = Styles::Visible | Styles::Enabled;
+
 /// The message procedure implementation for a top-level window
 ///
 /// # Arguments

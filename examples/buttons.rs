@@ -1,7 +1,7 @@
 use std::ops::BitXor;
 use ugui_r_rs::controls::button::{button_proc, BUTTON_CLICK};
-use ugui_r_rs::controls::textbox::textbox_proc;
-use ugui_r_rs::controls::window::window_proc;
+use ugui_r_rs::controls::textbox::{textbox_proc, TEXTBOX_STYLE};
+use ugui_r_rs::controls::window::{window_proc, WINDOW_STYLE};
 use ugui_r_rs::core::geo::Rect;
 use ugui_r_rs::core::messages::Message;
 use ugui_r_rs::core::styles::Styles;
@@ -39,7 +39,7 @@ fn main() {
         .create_window(
             "window".to_string(),
             "Test Window".to_string(),
-            Styles::Visible | Styles::Enabled,
+            WINDOW_STYLE,
             Rect {
                 x: CENTER_SCREEN,
                 y: CENTER_SCREEN,
@@ -135,7 +135,7 @@ fn main() {
         .create_window(
             "TEXTBOX".to_string(),
             "aadssd".to_string(),
-            Styles::Visible | Styles::Enabled,
+            TEXTBOX_STYLE,
             Rect {
                 x: 200.0,
                 y: 50.0,

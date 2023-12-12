@@ -498,16 +498,24 @@ impl Ugui {
                         {
                             // If focused HWNDs differ, we unfocus the old one
                             if focused_hwnd.is_some_and(|x| x != control.hwnd) {
-                                self.message_queue
-                                    .push((focused_hwnd.unwrap(), Message::Unfocus));
-                                self.message_queue
-                                    .push((focused_hwnd.unwrap(), Message::Paint));
+                                if Ugui::window_from_hwnd(&self.windows, focused_hwnd.unwrap())
+                                    .styles
+                                    .contains(Styles::Focusable)
+                                {
+                                    self.message_queue
+                                        .push((focused_hwnd.unwrap(), Message::Unfocus));
+                                }
                             }
 
                             focused_hwnd = Some(control.hwnd);
                             self.message_queue.push((control.hwnd, Message::LmbDown));
-                            self.message_queue.push((control.hwnd, Message::Focus));
-                            self.message_queue.push((control.hwnd, Message::Paint));
+
+                            if Ugui::window_from_hwnd(&self.windows, control.hwnd)
+                                .styles
+                                .contains(Styles::Focusable)
+                            {
+                                self.message_queue.push((control.hwnd, Message::Focus));
+                            }
                         }
                     }
                     Event::MouseButtonUp { mouse_btn, .. } => {
