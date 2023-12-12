@@ -12,12 +12,6 @@ use sdl2::pixels::Color;
 /// returns: u64 The message response
 pub fn window_proc(ugui: &mut Ugui, root_hwnd: HWND, hwnd: HWND, message: Message) -> u64 {
     match message {
-        Message::Create => {
-            ugui.send_message(hwnd, Message::Paint);
-        }
-        Message::StylesChanged => {
-            ugui.send_message(hwnd, Message::Paint);
-        }
         Message::Paint => {
             let rect = ugui.get_window_rect(hwnd);
 

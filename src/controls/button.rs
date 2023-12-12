@@ -32,9 +32,6 @@ fn hex(str: &str) -> Color {
 /// returns: u64 The message response
 pub fn button_proc(ugui: &mut Ugui, root_hwnd: HWND, hwnd: HWND, message: Message) -> u64 {
     match message {
-        Message::Create => {
-            ugui.send_message(hwnd, Message::Paint);
-        }
         Message::StylesChanged => {
             let style = ugui.get_styles(hwnd);
 

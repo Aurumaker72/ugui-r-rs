@@ -93,6 +93,7 @@ impl Ugui {
 
         self.message_queue.push((hwnd, Message::StylesChanged));
         self.message_queue.push((hwnd, Message::Create));
+        self.message_queue.push((hwnd, Message::Paint));
 
         Some(hwnd)
     }
@@ -131,6 +132,7 @@ impl Ugui {
         let window = Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
         window.styles = styles;
         self.send_message(hwnd, Message::StylesChanged);
+        self.send_message(hwnd, Message::Paint);
     }
 
     /// Gets a window's bounds
