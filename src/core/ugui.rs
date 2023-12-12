@@ -447,6 +447,59 @@ impl Ugui {
                             self.message_queue.push((control.hwnd, Message::LmbUp));
                         }
                     }
+                    Event::MouseMotion { .. } => {
+                        // If we have a captured control, it gets special treatment
+                        if let Some(captured_hwnd) = self.captured_hwnd {
+                            let captured_window =
+                                Ugui::window_from_hwnd(&self.windows, captured_hwnd);
+                            // 1. Send MouseMove unconditionally
+                            self.message_queue.push((
+                                captured_hwnd,
+                                Message::MouseMove(
+                                    mouse_point.sub(
+                                        Ugui::window_from_hwnd(&self.windows, captured_hwnd)
+                                            .rect
+                                            .top_left(),
+                                    ),
+                                ),
+                            ));
+
+                            // 2. Send MouseEnter/Leave based solely off of its own client rect
+                            if mouse_point.inside(captured_window.rect)
+                                && !last_mouse_position.inside(captured_window.rect)
+                            {
+                                self.message_queue
+                                    .push((captured_hwnd, Message::MouseEnter));
+                            }
+                            if !mouse_point.inside(captured_window.rect)
+                                && last_mouse_position.inside(captured_window.rect)
+                            {
+                                self.message_queue
+                                    .push((captured_hwnd, Message::MouseLeave));
+                            }
+                        } else {
+                            if let Some(control) = Self::window_at_point(&self.windows, mouse_point)
+                            {
+                                // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
+                                self.message_queue.push((
+                                    control.hwnd,
+                                    Message::MouseMove(mouse_point.sub(control.rect.top_left())),
+                                ));
+
+                                if let Some(prev_control) =
+                                    Self::window_at_point(&self.windows, last_mouse_position)
+                                {
+                                    if control.hwnd != prev_control.hwnd {
+                                        self.message_queue
+                                            .push((control.hwnd, Message::MouseEnter));
+                                        self.message_queue
+                                            .push((prev_control.hwnd, Message::MouseLeave));
+                                    }
+                                }
+                            }
+                        }
+                        last_mouse_position = mouse_point;
+                    }
                     Event::Window { win_event, .. } => match win_event {
                         WindowEvent::SizeChanged(w, h) => {
                             // Update this top-level window's dimensions
@@ -463,59 +516,6 @@ impl Ugui {
                     },
                     _ => {}
                 }
-            }
-
-            // We do mouse move event checking here, since MouseMotion event is very unreliable
-            {
-                // If we have a captured control, it gets special treatment
-                if let Some(captured_hwnd) = self.captured_hwnd {
-                    let captured_window = Ugui::window_from_hwnd(&self.windows, captured_hwnd);
-                    // 1. Send MouseMove unconditionally
-                    self.message_queue.push((
-                        captured_hwnd,
-                        Message::MouseMove(
-                            mouse_point.sub(
-                                Ugui::window_from_hwnd(&self.windows, captured_hwnd)
-                                    .rect
-                                    .top_left(),
-                            ),
-                        ),
-                    ));
-
-                    // 2. Send MouseEnter/Leave based solely off of its own client rect
-                    if mouse_point.inside(captured_window.rect)
-                        && !last_mouse_position.inside(captured_window.rect)
-                    {
-                        self.message_queue
-                            .push((captured_hwnd, Message::MouseEnter));
-                    }
-                    if !mouse_point.inside(captured_window.rect)
-                        && last_mouse_position.inside(captured_window.rect)
-                    {
-                        self.message_queue
-                            .push((captured_hwnd, Message::MouseLeave));
-                    }
-                } else {
-                    if let Some(control) = Self::window_at_point(&self.windows, mouse_point) {
-                        // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
-                        self.message_queue.push((
-                            control.hwnd,
-                            Message::MouseMove(mouse_point.sub(control.rect.top_left())),
-                        ));
-
-                        if let Some(prev_control) =
-                            Self::window_at_point(&self.windows, last_mouse_position)
-                        {
-                            if control.hwnd != prev_control.hwnd {
-                                self.message_queue.push((control.hwnd, Message::MouseEnter));
-                                self.message_queue
-                                    .push((prev_control.hwnd, Message::MouseLeave));
-                            }
-                        }
-                    }
-                }
-
-                last_mouse_position = mouse_point;
             }
 
             for message_pair in self.message_queue.clone() {
