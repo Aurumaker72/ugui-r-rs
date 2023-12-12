@@ -372,25 +372,27 @@ impl Ugui {
     /// ugui.show_window(hwnd);
     /// ```
     pub fn show_window(&mut self, hwnd: HWND) {
-        let window = &mut self.windows[hwnd];
-
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
 
         let ttf_context = sdl2::ttf::init().unwrap();
 
+        let top_level_window = Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
         let mut window_builder = &mut video_subsystem.window(
-            &window.caption,
-            window.rect.w as u32,
-            window.rect.h as u32,
+            &top_level_window.caption,
+            top_level_window.rect.w as u32,
+            top_level_window.rect.h as u32,
         );
 
         window_builder
-            .position(window.rect.x as i32, window.rect.y as i32)
+            .position(
+                top_level_window.rect.x as i32,
+                top_level_window.rect.y as i32,
+            )
             .opengl()
             .resizable();
 
-        if window.rect.x == CENTER_SCREEN && window.rect.y == CENTER_SCREEN {
+        if top_level_window.rect.x == CENTER_SCREEN && top_level_window.rect.y == CENTER_SCREEN {
             window_builder = window_builder.position_centered();
         }
 
@@ -500,17 +502,18 @@ impl Ugui {
                 }
             }
 
-            for i in 0..self.message_queue.len() {
-                let wnd = &self.windows[self.message_queue[i].0];
-                (wnd.procedure)(self, wnd.hwnd, self.message_queue[i].1);
+            for message_pair in self.message_queue.clone() {
+                let window = Ugui::window_from_hwnd(&self.windows, message_pair.0);
+                (window.procedure)(self, message_pair.0, message_pair.1);
             }
 
             self.message_queue.clear();
             self.canvas.as_mut().unwrap().present();
         }
 
-        for i in 0..self.windows.len() {
-            self.destroy_window(self.windows[i].hwnd);
+        for window in self.windows.clone() {
+            self.destroy_window(window.hwnd);
         }
+
     }
 }
