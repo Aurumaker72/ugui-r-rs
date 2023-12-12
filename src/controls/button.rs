@@ -32,6 +32,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             }
             ugui.set_udata(hwnd, VisualState::Active.to_u64().unwrap());
             ugui.send_message(hwnd, Message::Paint);
+            ugui.capture_mouse(hwnd);
             0
         }
         Message::LmbUp => {
@@ -47,6 +48,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
             }
             ugui.send_message(hwnd, Message::Paint);
+            ugui.uncapture_mouse(hwnd);
             0
         }
         Message::MouseEnter => {

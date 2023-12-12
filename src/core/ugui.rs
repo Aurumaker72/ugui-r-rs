@@ -401,37 +401,34 @@ impl Ugui {
                     Event::MouseButtonDown {
                         mouse_btn, x, y, ..
                     } => {
-                        let point = Point::new_i(x, y);
                         if mouse_btn != MouseButton::Left {
                             break;
                         }
-                        lmb_down_point = point;
+                        lmb_down_point = Point::new_i(x, y);
 
                         if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
                             // If focused HWNDs differ, we unfocus the old one
                             if focused_hwnd.is_some() && focused_hwnd.unwrap() != control.hwnd {
-                                self.message_queue.push((control.hwnd, Message::Unfocus));
+                                self.message_queue
+                                    .push((focused_hwnd.unwrap(), Message::Unfocus));
                             }
 
-                            let prev_focused_hwnd = focused_hwnd;
                             focused_hwnd = Some(control.hwnd);
                             self.message_queue.push((control.hwnd, Message::LmbDown));
-
-                            // Only send focus message if focus state actually changes after reassignment
-                            if focused_hwnd.ne(&prev_focused_hwnd) {
-                                self.message_queue.push((control.hwnd, Message::Focus));
-                            }
+                            self.message_queue.push((control.hwnd, Message::Focus));
                         }
                     }
                     Event::MouseButtonUp {
                         mouse_btn, x, y, ..
                     } => {
-                        let point = Point::new_i(x, y);
                         if mouse_btn != MouseButton::Left {
                             break;
                         }
-                        // Tell the previously clicked control we left it now
+                        let point = Point::new_i(x, y);
+
+                        // Following assumption is made: We can't have up without down happening prior to it.
+                        // The control at the mouse down position thus needs to know if the mouse was released afterwards, either inside or outside of its client area.
                         if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
                             self.message_queue.push((control.hwnd, Message::LmbUp));
@@ -442,22 +439,30 @@ impl Ugui {
                     } => {
                         let point = Point::new_i(x, y);
 
-                        // If we have a control at the mouse, we send it mousemove
-                        if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
-                        {
+                        // If we have a captured control, it gets MouseMove unconditionally and everything else is ignored
+                        if let Some(captured_hwnd) = self.captured_hwnd {
                             self.message_queue.push((
-                                control.hwnd,
-                                Message::MouseMove(point.sub(control.rect.top_left())),
+                                captured_hwnd,
+                                Message::MouseMove(
+                                    point.sub(self.windows[captured_hwnd].rect.top_left()),
+                                ),
                             ));
+                            break;
                         }
 
                         if let Some(control) = Self::window_at_point(&self.windows, point) {
+                            // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
+                            self.message_queue.push((
+                                control.hwnd,
+                                Message::MouseMove(
+                                    point.sub(control.rect.top_left()),
+                                ),
+                            ));
+
                             if let Some(prev_control) =
                                 Self::window_at_point(&self.windows, last_mouse_position)
                             {
                                 if control.hwnd != prev_control.hwnd {
-                                    // If the current control isn't our captured one
-
                                     self.message_queue.push((control.hwnd, Message::MouseEnter));
                                     self.message_queue
                                         .push((prev_control.hwnd, Message::MouseLeave));
