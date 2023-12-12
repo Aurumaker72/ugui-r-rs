@@ -4,6 +4,7 @@ use crate::core::geo::{Point, Rect};
 use crate::core::messages::Message;
 use crate::core::styles::Styles;
 use crate::window::Window;
+use crate::CENTER_SCREEN;
 use crate::HWND;
 use crate::WNDPROC;
 use flagset::FlagSet;
@@ -15,15 +16,15 @@ use sdl2::render::WindowCanvas;
 use sdl2::ttf::{Font, Sdl2TtfContext};
 use std::collections::HashMap;
 use std::path::Path;
-use crate::CENTER_SCREEN;
 
-/// The global application context, roughly equivalent to a WinAPI INSTANCE
+/// An application, roughly equivalent to a top-level window with a message loop and many child windows.
 #[derive(Default)]
 pub struct Ugui {
     windows: Vec<Window>,
     canvas: Option<WindowCanvas>,
     message_queue: Vec<(HWND, Message)>,
 }
+
 impl Ugui {
     fn window_at_point(windows: &[Window], point: Point) -> Option<&Window> {
         if let Some(control) = windows.iter().rev().find(|x| point.inside(x.rect)) {
@@ -32,97 +33,7 @@ impl Ugui {
         return None;
     }
 }
-impl Ugui {
-    pub fn paint_quad(
-        &mut self,
-        rect: Rect,
-        back_color: Color,
-        border_color: Color,
-        border_size: f32,
-    ) {
-        self.canvas.as_mut().unwrap().set_draw_color(border_color);
-        self.canvas
-            .as_mut()
-            .unwrap()
-            .fill_rect(rect.to_sdl())
-            .unwrap();
-        self.canvas.as_mut().unwrap().set_draw_color(back_color);
-        self.canvas
-            .as_mut()
-            .unwrap()
-            .fill_rect(rect.inflate(-1.0).to_sdl())
-            .unwrap();
-    }
-    pub fn paint_text<'a>(
-        &mut self,
-        font: Font<'a, 'static>,
-        text: &str,
-        rect: Rect,
-        color: Color,
-        horizontal_alignment: Alignment,
-        vertical_alignment: Alignment,
-        line_height: f32,
-    ) {
-        let texture_creator = self.canvas.as_mut().unwrap().texture_creator();
 
-        let lines = text.split("\n").collect::<Vec<&str>>();
-
-        for i in 0..lines.len() {
-            let mut line = lines[i].replace("\n", "");
-
-            // SDL freaks out when performing operations on 0-width strings
-            if line.len() == 0 {
-                line = " ".to_string();
-            }
-
-            let surface = font
-                .render(&line)
-                .blended(color)
-                .map_err(|e| e.to_string())
-                .unwrap();
-
-            let texture = texture_creator
-                .create_texture_from_surface(&surface)
-                .map_err(|e| e.to_string())
-                .unwrap();
-
-            let size = font.size_of(&line).unwrap();
-            let text_size = Point {
-                x: size.0 as f32,
-                y: size.1 as f32,
-            };
-            let mut line_rect = Rect {
-                x: rect.x,
-                y: rect.y + (i as f32 * line_height),
-                w: rect.w,
-                h: line_height,
-            };
-            if lines.len() == 1 {
-                // Single-line string: line rect is just the regular rect
-                line_rect = rect;
-            }
-            if horizontal_alignment == Alignment::Center {
-                line_rect.x += line_rect.w / 2.0 - text_size.x / 2.0;
-            }
-            if horizontal_alignment == Alignment::End {
-                line_rect.x += line_rect.w - text_size.x;
-            }
-            if vertical_alignment == Alignment::Center {
-                line_rect.y += line_rect.h / 2.0 - text_size.y / 2.0;
-            }
-            if vertical_alignment == Alignment::End {
-                line_rect.y += line_rect.h - text_size.y;
-            }
-            line_rect.w = text_size.x;
-            line_rect.h = text_size.y;
-            self.canvas
-                .as_mut()
-                .unwrap()
-                .copy(&texture, None, Some(line_rect.to_sdl()))
-                .unwrap();
-        }
-    }
-}
 impl Ugui {
     /// Creates a window with the specified arguments
     ///
@@ -300,6 +211,116 @@ impl Ugui {
     ///
     pub fn set_udata(&mut self, hwnd: HWND, state: u64) {
         self.windows[hwnd].state_0 = state
+    }
+
+    /// Paints a decorated quad
+    ///
+    /// # Arguments
+    ///
+    /// * `rect`: The quad destination
+    /// * `back_color`: The quad's background color
+    /// * `border_color`: The quad's border color
+    /// * `border_size`: The quad's border size
+    pub fn paint_quad(
+        &mut self,
+        rect: Rect,
+        back_color: Color,
+        border_color: Color,
+        border_size: f32,
+    ) {
+        self.canvas.as_mut().unwrap().set_draw_color(border_color);
+        self.canvas
+            .as_mut()
+            .unwrap()
+            .fill_rect(rect.to_sdl())
+            .unwrap();
+        self.canvas.as_mut().unwrap().set_draw_color(back_color);
+        self.canvas
+            .as_mut()
+            .unwrap()
+            .fill_rect(rect.inflate(-1.0).to_sdl())
+            .unwrap();
+    }
+
+    /// Paints unformatted text
+    ///
+    /// # Arguments
+    ///
+    /// * `font`: The font to paint the text with
+    /// * `text`: The text
+    /// * `rect`: The text bounds
+    /// * `color`: The text color
+    /// * `horizontal_alignment`: The text's horizontal alignment inside its bounds
+    /// * `vertical_alignment`: The text's vertical alignment inside its bounds
+    /// * `line_height`: The space between line breaks
+    pub fn paint_text<'a>(
+        &mut self,
+        font: Font<'a, 'static>,
+        text: &str,
+        rect: Rect,
+        color: Color,
+        horizontal_alignment: Alignment,
+        vertical_alignment: Alignment,
+        line_height: f32,
+    ) {
+        let texture_creator = self.canvas.as_mut().unwrap().texture_creator();
+
+        let lines = text.split("\n").collect::<Vec<&str>>();
+
+        for i in 0..lines.len() {
+            let mut line = lines[i].replace("\n", "");
+
+            // SDL freaks out when performing operations on 0-width strings
+            if line.len() == 0 {
+                line = " ".to_string();
+            }
+
+            let surface = font
+                .render(&line)
+                .blended(color)
+                .map_err(|e| e.to_string())
+                .unwrap();
+
+            let texture = texture_creator
+                .create_texture_from_surface(&surface)
+                .map_err(|e| e.to_string())
+                .unwrap();
+
+            let size = font.size_of(&line).unwrap();
+            let text_size = Point {
+                x: size.0 as f32,
+                y: size.1 as f32,
+            };
+            let mut line_rect = Rect {
+                x: rect.x,
+                y: rect.y + (i as f32 * line_height),
+                w: rect.w,
+                h: line_height,
+            };
+            if lines.len() == 1 {
+                // Single-line string: line rect is just the regular rect
+                line_rect = rect;
+            }
+            if horizontal_alignment == Alignment::Center {
+                line_rect.x += line_rect.w / 2.0 - text_size.x / 2.0;
+            }
+            if horizontal_alignment == Alignment::End {
+                line_rect.x += line_rect.w - text_size.x;
+            }
+            if vertical_alignment == Alignment::Center {
+                line_rect.y += line_rect.h / 2.0 - text_size.y / 2.0;
+            }
+            if vertical_alignment == Alignment::End {
+                line_rect.y += line_rect.h - text_size.y;
+            }
+            line_rect.w = text_size.x;
+            line_rect.h = text_size.y;
+            self.canvas
+                .as_mut()
+                .unwrap()
+                .copy(&texture, None, Some(line_rect.to_sdl()))
+                .unwrap();
+        }
     }
 
     /// Shows a window, trapping the caller until the window closes
