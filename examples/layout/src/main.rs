@@ -89,5 +89,21 @@ fn main() {
             button_proc,
         )
         .unwrap();
+
+    let button_5_hwnd = ugui
+        .create_window(
+            "BUTTON".to_string(),
+            "we overlap".to_string(),
+            Styles::Visible | Styles::Enabled,
+            Rect {
+                x: 130.0,
+                y: 20.0,
+                w: 120.0,
+                h: 20.0,
+            },
+            Some(hwnd),
+            button_proc,
+        )
+        .unwrap();
     ugui.show_window(hwnd);
 }
