@@ -3,7 +3,7 @@ use crate::core::styles::Styles;
 use flagset::FlagSet;
 
 /// Messages which are sent to controls when application events happen
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Message {
     /// The control has been created
     Create,
@@ -18,8 +18,7 @@ pub enum Message {
     LmbUp,
 
     /// The mouse is moving while inside the control
-    /// Contains the mouse position relative to the control
-    MouseMove(Point),
+    MouseMove,
 
     /// The mouse has entered the control bounds
     MouseEnter,

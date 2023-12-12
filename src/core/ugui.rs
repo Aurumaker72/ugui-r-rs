@@ -24,6 +24,8 @@ pub struct Ugui {
     canvas: Option<WindowCanvas>,
     message_queue: Vec<(HWND, Message)>,
     captured_hwnd: Option<HWND>,
+    /// Whether the buffers need to be swapped. It's expensive to swap buffers, so we only do this when receiving paint events
+    needs_swap: bool,
 }
 
 impl Ugui {
@@ -149,6 +151,9 @@ impl Ugui {
     /// returns: u64 The window's procedure response
     ///
     pub fn send_message(&mut self, hwnd: HWND, message: Message) -> u64 {
+        if message == Message::Paint {
+            self.needs_swap = true;
+        }
         (Ugui::window_from_hwnd(&self.windows, hwnd).procedure)(self, hwnd, message)
     }
 
@@ -397,7 +402,7 @@ impl Ugui {
         }
 
         let mut sdl_window = window_builder.build().unwrap();
-        self.canvas = Some(sdl_window.into_canvas().build().unwrap());
+        self.canvas = Some(sdl_window.into_canvas().present_vsync().build().unwrap());
         let mut event_pump = sdl_context.event_pump().unwrap();
 
         let default_font = Some(
@@ -453,16 +458,7 @@ impl Ugui {
                             let captured_window =
                                 Ugui::window_from_hwnd(&self.windows, captured_hwnd);
                             // 1. Send MouseMove unconditionally
-                            self.message_queue.push((
-                                captured_hwnd,
-                                Message::MouseMove(
-                                    mouse_point.sub(
-                                        Ugui::window_from_hwnd(&self.windows, captured_hwnd)
-                                            .rect
-                                            .top_left(),
-                                    ),
-                                ),
-                            ));
+                            self.message_queue.push((captured_hwnd, Message::MouseMove));
 
                             // 2. Send MouseEnter/Leave based solely off of its own client rect
                             if mouse_point.inside(captured_window.rect)
@@ -481,10 +477,7 @@ impl Ugui {
                             if let Some(control) = Self::window_at_point(&self.windows, mouse_point)
                             {
                                 // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
-                                self.message_queue.push((
-                                    control.hwnd,
-                                    Message::MouseMove(mouse_point.sub(control.rect.top_left())),
-                                ));
+                                self.message_queue.push((control.hwnd, Message::MouseMove));
 
                                 if let Some(prev_control) =
                                     Self::window_at_point(&self.windows, last_mouse_position)
@@ -518,13 +511,17 @@ impl Ugui {
                 }
             }
 
-            for message_pair in self.message_queue.clone() {
-                let window = Ugui::window_from_hwnd(&self.windows, message_pair.0);
-                (window.procedure)(self, message_pair.0, message_pair.1);
+            for (hwnd, message) in self.message_queue.clone() {
+                self.send_message(hwnd, message);
             }
 
             self.message_queue.clear();
-            self.canvas.as_mut().unwrap().present();
+
+            if self.needs_swap {
+                println!("Swapping");
+                self.canvas.as_mut().unwrap().present();
+                self.needs_swap = false;
+            }
         }
 
         for window in self.windows.clone().iter().rev() {
