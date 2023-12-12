@@ -159,10 +159,45 @@ impl Ugui {
     /// returns: u64 The window's procedure response
     ///
     pub fn send_message(&mut self, hwnd: HWND, message: Message) -> u64 {
+        let invisible = !self.get_window_style(hwnd).contains(Styles::Visible);
+
         if message == Message::Paint {
             self.needs_swap = true;
+
+            if invisible {
+                // If we are repainting an invisible control, we do the following:
+                // 1. Set clip region to the control bounds
+                // 2. Repaint all controls, skipping invisible ones
+                // FIXME: PERF: Only repaint controls whose client rectangle overlaps the repainted control's
+                let rect = Ugui::window_from_hwnd(&self.windows, hwnd).rect;
+
+                let prev_clip = self.canvas.as_mut().unwrap().clip_rect().unwrap_or(
+                    Ugui::window_from_hwnd(&self.windows, self.root_hwnd())
+                        .rect
+                        .to_sdl(),
+                );
+
+                self.canvas.as_mut().unwrap().set_clip_rect(rect.to_sdl());
+                for i in 0..self.windows.len() {
+                    if !self
+                        .get_window_style(self.windows[i].hwnd)
+                        .contains(Styles::Visible)
+                    {
+                        continue;
+                    }
+                    (self.windows[i].procedure)(self, self.windows[i].hwnd, Message::Paint);
+                }
+                self.canvas.as_mut().unwrap().set_clip_rect(prev_clip);
+
+                return 0;
+            }
         }
-        (Ugui::window_from_hwnd(&self.windows, hwnd).procedure)(self, hwnd, message)
+
+        if invisible && message == Message::Paint {
+            return 0;
+        }
+
+        return (Ugui::window_from_hwnd(&self.windows, hwnd).procedure)(self, hwnd, message);
     }
 
     /// Gets the window's parent
