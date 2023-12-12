@@ -10,8 +10,10 @@ use sdl2::controller::Button;
 use sdl2::pixels::Color;
 use std::collections::HashMap;
 
+pub fn button_style() -> FlagSet<Styles> {
+    Styles::Visible | Styles::Enabled | Styles::Focusable
+}
 pub const BUTTON_CLICK: u64 = 50;
-pub const BUTTON_STYLE: FlagSet<Styles> = Styles::Visible | Styles::Enabled | Styles::Focusable;
 
 /// The message procedure implementation for a button
 ///

@@ -1,7 +1,7 @@
 use std::ops::BitXor;
-use ugui_r_rs::controls::button::{button_proc, BUTTON_CLICK};
-use ugui_r_rs::controls::textbox::{textbox_proc, TEXTBOX_STYLE};
-use ugui_r_rs::controls::window::{window_proc, WINDOW_STYLE};
+use ugui_r_rs::controls::button::{button_proc, button_style};
+use ugui_r_rs::controls::textbox::{textbox_proc, textbox_style};
+use ugui_r_rs::controls::window::{window_proc, window_style};
 use ugui_r_rs::core::geo::Rect;
 use ugui_r_rs::core::messages::Message;
 use ugui_r_rs::core::styles::Styles;
@@ -39,7 +39,7 @@ fn main() {
         .create_window(
             "window".to_string(),
             "Test Window".to_string(),
-            WINDOW_STYLE,
+            window_style(),
             Rect {
                 x: CENTER_SCREEN,
                 y: CENTER_SCREEN,
@@ -55,7 +55,7 @@ fn main() {
         .create_window(
             "BUTTON".to_string(),
             "Hello World!".to_string(),
-            Styles::Visible | Styles::Enabled,
+            button_style(),
             Rect {
                 x: 10.0,
                 y: 10.0,
@@ -103,7 +103,7 @@ fn main() {
         .create_window(
             "BUTTON".to_string(),
             "Hello World asdsadads!".to_string(),
-            Styles::Visible | Styles::Enabled,
+            button_style(),
             Rect {
                 x: 120.0,
                 y: 10.0,
@@ -119,7 +119,7 @@ fn main() {
         .create_window(
             "BUTTON".to_string(),
             "we overlap".to_string(),
-            Styles::Visible | Styles::Enabled,
+            button_style(),
             Rect {
                 x: 130.0,
                 y: 20.0,
@@ -135,7 +135,7 @@ fn main() {
         .create_window(
             "TEXTBOX".to_string(),
             "aadssd".to_string(),
-            TEXTBOX_STYLE,
+            textbox_style(),
             Rect {
                 x: 200.0,
                 y: 50.0,

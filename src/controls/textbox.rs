@@ -11,8 +11,9 @@ use sdl2::pixels::Color;
 use std::collections::HashMap;
 
 pub const TEXTBOX_CHANGED: u64 = 51;
-pub const TEXTBOX_STYLE: FlagSet<Styles> = Styles::Visible | Styles::Enabled | Styles::Focusable;
-
+pub fn textbox_style() -> FlagSet<Styles> {
+    Styles::Visible | Styles::Enabled | Styles::Focusable
+}
 /// The message procedure implementation for a textbox
 ///
 /// # Arguments
