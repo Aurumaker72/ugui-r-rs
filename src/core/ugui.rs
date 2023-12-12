@@ -377,7 +377,7 @@ impl Ugui {
 
         let ttf_context = sdl2::ttf::init().unwrap();
 
-        let top_level_window = Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
+        let top_level_window = Ugui::window_from_hwnd(&self.windows, hwnd);
         let mut window_builder = &mut video_subsystem.window(
             &top_level_window.caption,
             top_level_window.rect.w as u32,
@@ -460,7 +460,11 @@ impl Ugui {
                             self.message_queue.push((
                                 captured_hwnd,
                                 Message::MouseMove(
-                                    point.sub(self.windows[captured_hwnd].rect.top_left()),
+                                    point.sub(
+                                        Ugui::window_from_hwnd(&self.windows, captured_hwnd)
+                                            .rect
+                                            .top_left(),
+                                    ),
                                 ),
                             ));
                             break;
@@ -489,8 +493,10 @@ impl Ugui {
                     Event::Window { win_event, .. } => match win_event {
                         WindowEvent::SizeChanged(w, h) => {
                             // Update this top-level window's dimensions
-                            self.windows[hwnd].rect.w = w as f32;
-                            self.windows[hwnd].rect.h = h as f32;
+                            let top_level_window =
+                                Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
+                            top_level_window.rect.w = w as f32;
+                            top_level_window.rect.h = h as f32;
 
                             for window in &self.windows {
                                 self.message_queue.push((window.hwnd, Message::Paint));
@@ -514,6 +520,5 @@ impl Ugui {
         for window in self.windows.clone() {
             self.destroy_window(window.hwnd);
         }
-
     }
 }
