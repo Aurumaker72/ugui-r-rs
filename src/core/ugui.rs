@@ -413,11 +413,11 @@ impl Ugui {
         self.canvas = Some(sdl_window.into_canvas().present_vsync().build().unwrap());
         let mut event_pump = sdl_context.event_pump().unwrap();
 
-        let default_font = Some(
-            ttf_context
-                .load_font(Path::new("../../src/skin/segoe.ttf"), 16)
-                .unwrap(),
-        );
+        // let default_font = Some(
+        //     ttf_context
+        //         .load_font(Path::new("../../src/skin/segoe.ttf"), 16)
+        //         .unwrap(),
+        // );
 
         let mut lmb_down_point = Point::default();
         let mut last_mouse_position = Point::default();

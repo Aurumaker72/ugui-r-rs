@@ -3,6 +3,13 @@ name = "ugui_r_rs"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "ugui_r_rs"
+path = "src/lib.rs"
+
+[[example]]
+name = "buttons"
+
 [dependencies]
 flagset = "0.4.4"
 num-traits = "0.2"
