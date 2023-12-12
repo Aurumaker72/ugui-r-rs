@@ -9,5 +9,5 @@ pub mod window;
 pub mod controls;
 
 pub type HWND = usize;
-pub type WNDPROC = fn(&mut Ugui, HWND, HWND, Message) -> u64;
+pub type WNDPROC = fn(&mut Ugui, HWND, Message) -> u64;
 pub const CENTER_SCREEN: f32 = -1.0;

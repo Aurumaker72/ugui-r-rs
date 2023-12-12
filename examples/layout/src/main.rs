@@ -1,4 +1,4 @@
-use ugui_r_rs::controls::button::button_proc;
+use ugui_r_rs::controls::button::{button_proc, BUTTON_CLICK};
 use ugui_r_rs::controls::window::window_proc;
 use ugui_r_rs::core::geo::Rect;
 use ugui_r_rs::core::messages::Message;
@@ -9,6 +9,22 @@ use ugui_r_rs::HWND;
 
 fn main() {
     let mut ugui = Ugui::default();
+
+    fn my_wndproc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
+        match message {
+            Message::LmbDown => {
+                println!("down {:?}", hwnd);
+            }
+            Message::User(source, kind) => match kind {
+                BUTTON_CLICK => {
+                    println!("clicked {:?}", source);
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+        window_proc(ugui, hwnd, message)
+    }
 
     let hwnd = ugui
         .create_window(
@@ -22,7 +38,7 @@ fn main() {
                 h: 480.0,
             },
             None,
-            window_proc,
+            my_wndproc,
         )
         .unwrap();
 

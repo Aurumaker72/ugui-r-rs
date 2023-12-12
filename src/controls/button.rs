@@ -9,6 +9,8 @@ use sdl2::controller::Button;
 use sdl2::pixels::Color;
 use std::collections::HashMap;
 
+pub const BUTTON_CLICK: u64 = 50;
+
 fn hex(str: &str) -> Color {
     let r = &str[1..3];
     let g = &str[3..5];
@@ -25,12 +27,11 @@ fn hex(str: &str) -> Color {
 /// # Arguments
 ///
 /// * `ugui`: A reference to the owner Ugui object
-/// * `root_hwnd`: The root window's handle
-/// * `hwnd`: The current window's handle
+/// * `hwnd`: The source window's handle
 /// * `message`: The message
 ///
 /// returns: u64 The message response
-pub fn button_proc(ugui: &mut Ugui, root_hwnd: HWND, hwnd: HWND, message: Message) -> u64 {
+pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     match message {
         Message::StylesChanged => {
             let style = ugui.get_styles(hwnd);
@@ -47,6 +48,7 @@ pub fn button_proc(ugui: &mut Ugui, root_hwnd: HWND, hwnd: HWND, message: Messag
             ugui.set_udata(hwnd, VisualState::Active.to_u64().unwrap());
             ugui.send_message(hwnd, Message::Paint);
             ugui.capture_mouse(hwnd);
+            ugui.send_message(ugui.root_hwnd(), Message::User(hwnd, BUTTON_CLICK));
         }
         Message::LmbUp => {
             if !ugui.get_styles(hwnd).contains(Styles::Enabled) {

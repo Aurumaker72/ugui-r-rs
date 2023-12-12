@@ -1,6 +1,7 @@
 use crate::core::geo::{Point, Rect};
 use crate::core::styles::Styles;
 use flagset::FlagSet;
+use crate::HWND;
 
 /// Messages which are sent to controls when application events happen
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -37,4 +38,8 @@ pub enum Message {
 
     /// The control's styles have changed
     StylesChanged,
+
+    /// A user-defined message
+    /// Contains the source window's handle (e.g.: a button), and a unique message identifier
+    User(HWND, u64)
 }

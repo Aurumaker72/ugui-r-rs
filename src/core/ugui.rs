@@ -50,10 +50,6 @@ impl Ugui {
         }
         panic!("No window with specified HWND found");
     }
-    fn root_hwnd(&self) -> HWND {
-        // NOTE: This is guaranteed
-        self.windows[0].hwnd
-    }
 }
 
 impl Ugui {
@@ -96,6 +92,12 @@ impl Ugui {
         self.message_queue.push((hwnd, Message::Paint));
 
         Some(hwnd)
+    }
+
+    /// Gets the top-level window's root handle
+    pub fn root_hwnd(&self) -> HWND {
+        // NOTE: This is guaranteed
+        self.windows[0].hwnd
     }
 
     /// Destroys a window, notifying it prior to the destruction
@@ -160,7 +162,7 @@ impl Ugui {
         if message == Message::Paint {
             self.needs_swap = true;
         }
-        (Ugui::window_from_hwnd(&self.windows, hwnd).procedure)(self, self.root_hwnd(), hwnd, message)
+        (Ugui::window_from_hwnd(&self.windows, hwnd).procedure)(self, hwnd, message)
     }
 
     /// Gets the window's parent
