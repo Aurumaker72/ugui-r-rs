@@ -17,7 +17,7 @@ fn main() {
             }
             Message::User(source, kind) => match kind {
                 BUTTON_CLICK => {
-                    println!("clicked {:?}", source);
+                    ugui.set_window_style(source, Styles::None.into())
                 }
                 _ => {}
             },
