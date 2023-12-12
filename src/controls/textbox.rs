@@ -9,9 +9,9 @@ use sdl2::controller::Button;
 use sdl2::pixels::Color;
 use std::collections::HashMap;
 
-pub const BUTTON_CLICK: u64 = 50;
+pub const TEXTBOX_CHANGED: u64 = 51;
 
-/// The message procedure implementation for a button
+/// The message procedure implementation for a textbox
 ///
 /// # Arguments
 ///
@@ -20,7 +20,7 @@ pub const BUTTON_CLICK: u64 = 50;
 /// * `message`: The message
 ///
 /// returns: u64 The message response
-pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
+pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     match message {
         Message::StylesChanged => {
             let style = ugui.get_styles(hwnd);
@@ -29,41 +29,31 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
             }
         }
-        Message::LmbDown => {
+        Message::Focus => {
             if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
                 ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
                 return 0;
             }
             ugui.set_udata(hwnd, VisualState::Active.to_u64().unwrap());
-            ugui.send_message(hwnd, Message::Paint);
-            ugui.capture_mouse(hwnd);
-            ugui.send_message(ugui.root_hwnd(), Message::User(hwnd, BUTTON_CLICK));
         }
-        Message::LmbUp => {
+        Message::Unfocus => {
             if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
                 ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
                 return 0;
             }
-            let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
-
-            if state == VisualState::Hover {
-                ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
-            } else {
-                ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
-            }
-            ugui.send_message(hwnd, Message::Paint);
-            ugui.uncapture_mouse(hwnd);
+            ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
+        }
+        Message::MouseMove => {
+            // TODO: Caret control
         }
         Message::MouseEnter => {
             if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
                 ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
                 return 0;
             }
-            let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
 
-            if state == VisualState::Hover {
-                ugui.set_udata(hwnd, VisualState::Active.to_u64().unwrap());
-            } else {
+            let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
+            if state == VisualState::Normal {
                 ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
             }
             ugui.send_message(hwnd, Message::Paint);
@@ -75,9 +65,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             }
             let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
 
-            if state == VisualState::Active {
-                ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
-            } else {
+            if state == VisualState::Hover {
                 ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
             }
             ugui.send_message(hwnd, Message::Paint);
@@ -87,10 +75,22 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             let rect = ugui.get_window_rect(hwnd);
 
             let colors = HashMap::from([
-                (VisualState::Normal, (hex_color("#E1E1E1"), hex_color("#ADADAD"))),
-                (VisualState::Hover, (hex_color("#E5F1FB"), hex_color("#0078D7"))),
-                (VisualState::Active, (hex_color("#CCE4F7"), hex_color("#005499"))),
-                (VisualState::Disabled, (hex_color("#CCCCCC"), hex_color("#BFBFBF"))),
+                (
+                    VisualState::Normal,
+                    (hex_color("#FFFFFF"), hex_color("#7A7A7A")),
+                ),
+                (
+                    VisualState::Hover,
+                    (hex_color("#FFFFFF"), hex_color("#171717")),
+                ),
+                (
+                    VisualState::Active,
+                    (hex_color("#FFFFFF"), hex_color("#0078D7")),
+                ),
+                (
+                    VisualState::Disabled,
+                    (hex_color("#FFFFFF"), hex_color("#CCCCCC")),
+                ),
             ]);
 
             ugui.paint_quad(rect, colors[&state].0, colors[&state].1, 1.0);
