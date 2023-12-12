@@ -23,6 +23,7 @@ pub struct Ugui {
     windows: Vec<Window>,
     canvas: Option<WindowCanvas>,
     message_queue: Vec<(HWND, Message)>,
+    captured_hwnd: Option<HWND>,
 }
 
 impl Ugui {
@@ -211,6 +212,24 @@ impl Ugui {
     ///
     pub fn set_udata(&mut self, hwnd: HWND, state: u64) {
         self.windows[hwnd].state_0 = state
+    }
+
+    /// Captures the mouse, receiving all of its events and preventing propagation to other controls
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window handle capturing the mouse
+    pub fn capture_mouse(&mut self, hwnd: HWND) {
+        self.captured_hwnd = Some(hwnd)
+    }
+
+    /// Release mouse capture, resuming normal event propagation
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window handle releasing the mouse capture
+    pub fn uncapture_mouse(&mut self, hwnd: HWND) {
+        self.captured_hwnd = None
     }
 
     /// Paints a decorated quad
@@ -437,6 +456,8 @@ impl Ugui {
                                 Self::window_at_point(&self.windows, last_mouse_position)
                             {
                                 if control.hwnd != prev_control.hwnd {
+                                    // If the current control isn't our captured one
+
                                     self.message_queue.push((control.hwnd, Message::MouseEnter));
                                     self.message_queue
                                         .push((prev_control.hwnd, Message::MouseLeave));
