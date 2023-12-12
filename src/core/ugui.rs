@@ -15,19 +15,16 @@ use sdl2::render::WindowCanvas;
 use sdl2::ttf::{Font, Sdl2TtfContext};
 use std::collections::HashMap;
 use std::path::Path;
-
-pub const CENTER_SCREEN: f32 = -1.0;
+use crate::CENTER_SCREEN;
 
 /// The global application context, roughly equivalent to a WinAPI INSTANCE
 #[derive(Default)]
-pub struct Ugui<'a> {
+pub struct Ugui {
     windows: Vec<Window>,
     canvas: Option<WindowCanvas>,
-    ttf_context: Option<&'a Sdl2TtfContext>,
     message_queue: Vec<(HWND, Message)>,
-    pub default_font: Option<Font<'a, 'static>>,
 }
-impl<'a> Ugui<'a> {
+impl Ugui {
     fn window_at_point(windows: &[Window], point: Point) -> Option<&Window> {
         if let Some(control) = windows.iter().rev().find(|x| point.inside(x.rect)) {
             return Some(control);
@@ -35,7 +32,7 @@ impl<'a> Ugui<'a> {
         return None;
     }
 }
-impl<'a> Ugui<'a> {
+impl Ugui {
     pub fn paint_quad(
         &mut self,
         rect: Rect,
@@ -56,7 +53,7 @@ impl<'a> Ugui<'a> {
             .fill_rect(rect.inflate(-1.0).to_sdl())
             .unwrap();
     }
-    pub fn paint_text(
+    pub fn paint_text<'a>(
         &mut self,
         font: Font<'a, 'static>,
         text: &str,
@@ -126,7 +123,7 @@ impl<'a> Ugui<'a> {
         }
     }
 }
-impl<'a> Ugui<'a> {
+impl Ugui {
     /// Creates a window with the specified arguments
     ///
     /// # Arguments
@@ -326,8 +323,7 @@ impl<'a> Ugui<'a> {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
 
-        let ttf = sdl2::ttf::init().unwrap();
-        self.ttf_context = Some(&ttf);
+        let ttf_context = sdl2::ttf::init().unwrap();
 
         let mut window_builder = &mut video_subsystem.window(
             &window.caption,
@@ -348,10 +344,8 @@ impl<'a> Ugui<'a> {
         self.canvas = Some(sdl_window.into_canvas().build().unwrap());
         let mut event_pump = sdl_context.event_pump().unwrap();
 
-        self.default_font = Some(
-            self.ttf_context
-                .as_ref()
-                .unwrap()
+        let default_font = Some(
+            ttf_context
                 .load_font(Path::new("../../src/skin/segoe.ttf"), 16)
                 .unwrap(),
         );

@@ -1,10 +1,11 @@
+use ugui_r_rs::window::base_proc;
+use ugui_r_rs::core::ugui::Ugui;
 use ugui_r_rs::controls::button::button_proc;
 use ugui_r_rs::core::geo::Rect;
 use ugui_r_rs::core::messages::Message;
 use ugui_r_rs::core::styles::Styles;
-use ugui_r_rs::window::CENTER_SCREEN;
-use ugui_r_rs::window::HWND;
-use ugui_r_rs::window::{base_proc, Ugui};
+use ugui_r_rs::CENTER_SCREEN;
+use ugui_r_rs::HWND;
 
 fn main() {
     let mut ugui = Ugui::default();
