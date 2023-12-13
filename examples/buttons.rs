@@ -19,7 +19,12 @@ fn main() {
             }
             Message::User(source, kind) => match kind {
                 BUTTON_CLICK => {
-                    ugui.destroy_window(source);
+                    ugui.set_window_style(
+                        source,
+                        ugui.get_window_style(source).bitxor(Styles::Enabled),
+                    );
+                    println!("{:?}", ugui.get_window_style(source));
+                    // ugui.destroy_window(source);
                 }
                 _ => {}
             },

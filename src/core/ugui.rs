@@ -193,6 +193,10 @@ impl Ugui {
     pub fn set_window_style(&mut self, hwnd: HWND, styles: FlagSet<Styles>) {
         let window = Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
         window.styles = styles;
+
+        self.captured_hwnd = Ugui::fix_dependent_handle(&self.windows, self.captured_hwnd);
+        self.focused_hwnd = Ugui::fix_dependent_handle(&self.windows, self.focused_hwnd);
+
         // FIXME: Is it ok to just force a paint here? Isn't this supposed to go onto the queue?
         self.send_message(hwnd, Message::StylesChanged);
         self.send_message(hwnd, Message::Paint);
