@@ -158,6 +158,12 @@ impl Ugui {
     ///
     /// * `hwnd`: The window's handle
     pub fn destroy_window(&mut self, hwnd: HWND) {
+
+        // HACK: We set the control's invisible flag, and then force a rect-region repaint, so it disappears
+        // We can't use normal repaint message since that assumes a valid control exists
+        self.set_window_style(hwnd, Styles::None.into());
+        self.repaint_inside_rect(self.get_window_rect(hwnd));
+
         self.send_message(hwnd, Message::Destroy);
         self.windows.retain(|x| x.hwnd != hwnd);
 
