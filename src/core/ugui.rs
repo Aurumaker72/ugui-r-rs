@@ -8,15 +8,15 @@ use crate::CENTER_SCREEN;
 use crate::HWND;
 use crate::WNDPROC;
 use flagset::FlagSet;
-use log::info;
+
 use sdl2::event::{Event, WindowEvent};
-use sdl2::keyboard::Keycode;
+
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::render::WindowCanvas;
-use sdl2::ttf::{Font, Sdl2TtfContext};
-use std::collections::HashMap;
-use std::path::Path;
+use sdl2::ttf::{Font};
+
+
 
 /// An application, roughly equivalent to a top-level window with a message loop and many child windows.
 #[derive(Default)]
@@ -265,12 +265,12 @@ impl Ugui {
     ///
     /// returns: Vec<HWND> A vector containing the window's children
     ///
-    pub fn get_children(&self, hwnd: HWND) -> Vec<HWND> {
+    pub fn get_children(&self, _hwnd: HWND) -> Vec<HWND> {
         let mut children: Vec<HWND> = vec![];
 
         for window in &self.windows {
             let mut current_hwnd = window.hwnd;
-            while true {
+            loop {
                 let current_window = Ugui::window_from_hwnd(&self.windows, current_hwnd);
                 if current_window.parent.is_none() {
                     break;
@@ -334,7 +334,7 @@ impl Ugui {
     /// # Arguments
     ///
     /// * `hwnd`: The window handle releasing the mouse capture
-    pub fn uncapture_mouse(&mut self, hwnd: HWND) {
+    pub fn uncapture_mouse(&mut self, _hwnd: HWND) {
         self.captured_hwnd = None
     }
 
@@ -351,7 +351,7 @@ impl Ugui {
         rect: Rect,
         back_color: Color,
         border_color: Color,
-        border_size: f32,
+        _border_size: f32,
     ) {
         self.canvas.as_mut().unwrap().set_draw_color(border_color);
         self.canvas
@@ -467,7 +467,7 @@ impl Ugui {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
 
-        let ttf_context = sdl2::ttf::init().unwrap();
+        let _ttf_context = sdl2::ttf::init().unwrap();
 
         let top_level_window = Ugui::window_from_hwnd(&self.windows, hwnd);
         let mut window_builder = &mut video_subsystem.window(
@@ -488,7 +488,7 @@ impl Ugui {
             window_builder = window_builder.position_centered();
         }
 
-        let mut sdl_window = window_builder.build().unwrap();
+        let sdl_window = window_builder.build().unwrap();
         self.canvas = Some(sdl_window.into_canvas().present_vsync().build().unwrap());
         let mut event_pump = sdl_context.event_pump().unwrap();
 

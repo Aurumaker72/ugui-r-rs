@@ -1,6 +1,6 @@
 use std::ops::BitXor;
 use ugui_r_rs::controls::button::{button_proc, button_style};
-use ugui_r_rs::controls::textbox::{textbox_proc, textbox_style};
+use ugui_r_rs::controls::textbox::{textbox_proc};
 use ugui_r_rs::controls::window::{window_proc, window_style};
 use ugui_r_rs::core::geo::Rect;
 use ugui_r_rs::core::messages::Message;
@@ -18,7 +18,7 @@ fn main() {
                 println!("down {:?}", hwnd);
             }
             Message::User(source, kind) => match kind {
-                BUTTON_CLICK => {
+                _BUTTON_CLICK => {
                     ugui.set_window_style(
                         source,
                         ugui.get_window_style(source).bitxor(Styles::Enabled),
