@@ -25,6 +25,7 @@ pub struct Ugui {
     canvas: Option<WindowCanvas>,
     message_queue: Vec<(HWND, Message)>,
     captured_hwnd: Option<HWND>,
+    focused_hwnd: Option<HWND>,
     /// Whether the buffers need to be swapped. It's expensive to swap buffers, so we only do this when receiving paint events
     needs_swap: bool,
 }
@@ -39,6 +40,10 @@ impl Ugui {
             return Some(control);
         }
         return None;
+    }
+
+    fn window_from_hwnd_safe(windows: &[Window], hwnd: HWND) -> Option<&Window> {
+        windows.iter().find(|x| x.hwnd == hwnd)
     }
 
     fn window_from_hwnd(windows: &[Window], hwnd: HWND) -> &Window {
@@ -56,20 +61,22 @@ impl Ugui {
         panic!("No window with specified HWND found");
     }
 
-    /// Verifies that the mouse capture is owned by a valid candidate control
-    fn verify_mouse_capture(&mut self) {
-        if let Some(hwnd) = self.captured_hwnd {
-            let window = Ugui::window_from_hwnd(&self.windows, hwnd);
-
-            if !window.styles.contains(Styles::Enabled) || !window.styles.contains(Styles::Visible)
-            {
-                info!(
-                    "Captured control ({}) had its capture forcefully removed",
-                    hwnd
-                );
-                self.captured_hwnd = None;
-            }
+    /// Clears a dependent optional handle if it points to an invalid control
+    fn fix_dependent_handle(windows: &[Window], hwnd: Option<HWND>) -> Option<HWND> {
+        if hwnd.is_none() {
+            return hwnd;
         }
+
+        let window = Ugui::window_from_hwnd_safe(windows, hwnd.unwrap());
+
+        if window.is_none()
+            || !window.unwrap().styles.contains(Styles::Enabled)
+            || !window.unwrap().styles.contains(Styles::Visible)
+        {
+            println!("Dependent handle points to inappropriate control");
+            return None;
+        }
+        return hwnd;
     }
 
     /// Repaints all controls inside a rectangle, considering their styles
@@ -145,16 +152,17 @@ impl Ugui {
         self.windows[0].hwnd
     }
 
-    /// Destroys a window, notifying it prior to the destruction
+    /// Destroys a window, removing it from the hierarchy and notifying it
     ///
     /// # Arguments
     ///
     /// * `hwnd`: The window's handle
     pub fn destroy_window(&mut self, hwnd: HWND) {
-        let window = Ugui::window_from_hwnd(&self.windows, hwnd);
-        self.send_message(window.hwnd, Message::Destroy);
-        self.windows.iter().filter(|x| x.hwnd != hwnd);
-        self.verify_mouse_capture();
+        self.send_message(hwnd, Message::Destroy);
+        self.windows.retain(|x| x.hwnd != hwnd);
+
+        self.captured_hwnd = Ugui::fix_dependent_handle(&self.windows, self.captured_hwnd);
+        self.focused_hwnd = Ugui::fix_dependent_handle(&self.windows, self.focused_hwnd);
     }
 
     /// Gets a window's styles
@@ -206,12 +214,15 @@ impl Ugui {
     /// returns: u64 The window's procedure response
     ///
     pub fn send_message(&mut self, hwnd: HWND, message: Message) -> u64 {
-        self.verify_mouse_capture();
+        if Ugui::window_from_hwnd_safe(&self.windows, hwnd).is_none() {
+            println!("Tried to send message to non-existent window");
+            return 0;
+        }
 
         if message == Message::Paint {
             self.needs_swap = true;
         }
-        
+
         let rect = Ugui::window_from_hwnd(&self.windows, hwnd).rect;
         self.repaint_inside_rect(rect);
 
@@ -479,7 +490,6 @@ impl Ugui {
 
         let mut lmb_down_point = Point::default();
         let mut last_mouse_position = Point::default();
-        let mut focused_hwnd: Option<HWND> = None;
 
         'running: loop {
             let mouse_point =
@@ -497,17 +507,17 @@ impl Ugui {
                         if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
                         {
                             // If focused HWNDs differ, we unfocus the old one
-                            if focused_hwnd.is_some_and(|x| x != control.hwnd) {
-                                if Ugui::window_from_hwnd(&self.windows, focused_hwnd.unwrap())
+                            if self.focused_hwnd.is_some_and(|x| x != control.hwnd) {
+                                if Ugui::window_from_hwnd(&self.windows, self.focused_hwnd.unwrap())
                                     .styles
                                     .contains(Styles::Focusable)
                                 {
                                     self.message_queue
-                                        .push((focused_hwnd.unwrap(), Message::Unfocus));
+                                        .push((self.focused_hwnd.unwrap(), Message::Unfocus));
                                 }
                             }
 
-                            focused_hwnd = Some(control.hwnd);
+                            self.focused_hwnd = Some(control.hwnd);
                             self.message_queue.push((control.hwnd, Message::LmbDown));
 
                             if Ugui::window_from_hwnd(&self.windows, control.hwnd)

@@ -19,14 +19,7 @@ fn main() {
             }
             Message::User(source, kind) => match kind {
                 BUTTON_CLICK => {
-                    println!("Clicked {}", source);
-                    if source == 1 {
-                        ugui.set_window_style(source, Styles::None.into())
-                    }
-                    if source == 4 {
-                        let style = ugui.get_window_style(source);
-                        ugui.set_window_style(source, style.bitxor(Styles::Enabled))
-                    }
+                    ugui.destroy_window(source);
                 }
                 _ => {}
             },
