@@ -51,100 +51,43 @@ fn main() {
         )
         .unwrap();
 
-    let button_1_hwnd = ugui
-        .create_window(
-            "BUTTON".to_string(),
-            "Hello World!".to_string(),
-            button_style(),
-            Rect {
-                x: 10.0,
-                y: 10.0,
-                w: 90.0,
-                h: 20.0,
-            },
-            Some(hwnd),
-            button_proc,
-        )
-        .unwrap();
+    for i in 0..5 {
+        for j in 0..5 {
+            ugui.create_window(
+                "BUTTON".to_string(),
+                "Hello World!".to_string(),
+                button_style(),
+                Rect {
+                    x: (i as f32 * 90.0) + 10.0 + (i as f32 * 2.0),
+                    y: (j as f32 * 20.0) + 10.0 + (j as f32 * 2.0),
+                    w: 90.0,
+                    h: 20.0,
+                },
+                Some(hwnd),
+                button_proc,
+            )
+            .unwrap();
+        }
+    }
 
-    let button_2_hwnd = ugui
-        .create_window(
-            "BUTTON".to_string(),
-            "im a disabled button".to_string(),
-            Styles::Visible.into(),
-            Rect {
-                x: 10.0,
-                y: 40.0,
-                w: 90.0,
-                h: 20.0,
-            },
-            Some(hwnd),
-            button_proc,
-        )
-        .unwrap();
+    for i in 0..5 {
+        for j in 0..5 {
+            ugui.create_window(
+                "EDIT".to_string(),
+                "Hello World!".to_string(),
+                button_style(),
+                Rect {
+                    x: (i as f32 * 90.0) + 10.0 + (i as f32 * 2.0),
+                    y: (j as f32 * 20.0) + 200.0 + (j as f32 * 2.0),
+                    w: 90.0,
+                    h: 20.0,
+                },
+                Some(hwnd),
+                textbox_proc,
+            )
+            .unwrap();
+        }
+    }
 
-    let button_3_hwnd = ugui
-        .create_window(
-            "BUTTON".to_string(),
-            "im an invisible button".to_string(),
-            Styles::None.into(),
-            Rect {
-                x: 10.0,
-                y: 70.0,
-                w: 90.0,
-                h: 20.0,
-            },
-            Some(hwnd),
-            button_proc,
-        )
-        .unwrap();
-
-    let button_4_hwnd = ugui
-        .create_window(
-            "BUTTON".to_string(),
-            "Hello World asdsadads!".to_string(),
-            button_style(),
-            Rect {
-                x: 120.0,
-                y: 10.0,
-                w: 120.0,
-                h: 20.0,
-            },
-            Some(hwnd),
-            button_proc,
-        )
-        .unwrap();
-
-    let button_5_hwnd = ugui
-        .create_window(
-            "BUTTON".to_string(),
-            "we overlap".to_string(),
-            button_style(),
-            Rect {
-                x: 130.0,
-                y: 20.0,
-                w: 120.0,
-                h: 20.0,
-            },
-            Some(hwnd),
-            button_proc,
-        )
-        .unwrap();
-
-    let edit_1_hwnd = ugui
-        .create_window(
-            "TEXTBOX".to_string(),
-            "aadssd".to_string(),
-            textbox_style(),
-            Rect {
-                x: 200.0,
-                y: 50.0,
-                w: 120.0,
-                h: 23.0,
-            },
-            Some(hwnd),
-            textbox_proc,
-        )
-        .unwrap();
     ugui.show_window(hwnd);
 }
