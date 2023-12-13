@@ -1,6 +1,4 @@
-
-
-
+use sdl2::keyboard::Keycode;
 use crate::HWND;
 
 /// Messages which are sent to controls when application events happen
@@ -26,6 +24,12 @@ pub enum Message {
 
     /// The mouse has left the control bounds
     MouseLeave,
+
+    /// A keyboard key was pushed with focus inside the control
+    KeyDown(Keycode),
+
+    /// A keyboard key was released with focus inside the control
+    KeyUp(Keycode),
 
     /// The control gained focus
     Focus,

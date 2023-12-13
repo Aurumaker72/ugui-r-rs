@@ -14,9 +14,7 @@ use sdl2::event::{Event, WindowEvent};
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::render::WindowCanvas;
-use sdl2::ttf::{Font};
-
-
+use sdl2::ttf::Font;
 
 /// An application, roughly equivalent to a top-level window with a message loop and many child windows.
 #[derive(Default)]
@@ -158,7 +156,6 @@ impl Ugui {
     ///
     /// * `hwnd`: The window's handle
     pub fn destroy_window(&mut self, hwnd: HWND) {
-
         // HACK: We set the control's invisible flag, and then force a rect-region repaint, so it disappears
         // We can't use normal repaint message since that assumes a valid control exists
         self.set_window_style(hwnd, Styles::None.into());
@@ -604,6 +601,18 @@ impl Ugui {
                         }
                         _ => {}
                     },
+                    Event::KeyDown { keycode, .. } => {
+                        if let Some(hwnd) = self.focused_hwnd {
+                            self.message_queue
+                                .push((hwnd, Message::KeyDown(keycode.unwrap())));
+                        }
+                    }
+                    Event::KeyUp { keycode, .. } => {
+                        if let Some(hwnd) = self.focused_hwnd {
+                            self.message_queue
+                                .push((hwnd, Message::KeyUp(keycode.unwrap())));
+                        }
+                    }
                     _ => {}
                 }
             }
