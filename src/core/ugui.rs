@@ -26,6 +26,9 @@ pub struct Ugui {
     focused_hwnd: Option<HWND>,
     /// Whether the buffers need to be swapped. It's expensive to swap buffers, so we only do this when receiving paint events
     needs_swap: bool,
+    /// The last text inputted by the user via keyboard
+    /// We need to store this as an intermediary here, since it would have to be squeezed into a Message otherwise, thus making it non-copyable
+    last_text_input: String,
 }
 
 impl Ugui {
@@ -142,6 +145,11 @@ impl Ugui {
         self.message_queue.push((hwnd, Message::Paint));
 
         Some(hwnd)
+    }
+
+    /// Gets the most recent typed text
+    pub fn typed_text(&self) -> &str {
+        self.last_text_input.as_str()
     }
 
     /// Gets the top-level window's root handle
@@ -602,12 +610,24 @@ impl Ugui {
                         _ => {}
                     },
                     Event::KeyDown { keycode, .. } => {
+                        if keycode.is_none() {
+                            break;
+                        }
                         if let Some(hwnd) = self.focused_hwnd {
                             self.message_queue
                                 .push((hwnd, Message::KeyDown(keycode.unwrap())));
                         }
                     }
+                    Event::TextInput { text, .. } => {
+                        self.last_text_input = text;
+                        if let Some(hwnd) = self.focused_hwnd {
+                            self.message_queue.push((hwnd, Message::TextInput));
+                        }
+                    }
                     Event::KeyUp { keycode, .. } => {
+                        if keycode.is_none() {
+                            break;
+                        }
                         if let Some(hwnd) = self.focused_hwnd {
                             self.message_queue
                                 .push((hwnd, Message::KeyUp(keycode.unwrap())));

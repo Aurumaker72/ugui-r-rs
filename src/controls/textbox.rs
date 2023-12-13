@@ -7,7 +7,6 @@ use crate::HWND;
 use flagset::FlagSet;
 use num_traits::{FromPrimitive, ToPrimitive};
 
-
 use std::collections::HashMap;
 
 pub const TEXTBOX_CHANGED: u64 = 51;
@@ -74,6 +73,9 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
             }
             ugui.send_message(hwnd, Message::Paint);
+        }
+        Message::TextInput => {
+            println!("{}", ugui.typed_text());
         }
         Message::Paint => {
             let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();

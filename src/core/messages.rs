@@ -31,6 +31,9 @@ pub enum Message {
     /// A keyboard key was released with focus inside the control
     KeyUp(Keycode),
 
+    /// Text was written by the user
+    TextInput,
+
     /// The control gained focus
     Focus,
 
