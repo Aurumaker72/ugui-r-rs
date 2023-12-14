@@ -103,3 +103,14 @@ pub fn get_windows_inside_rect(windows: &[Window], rect: Rect) -> Vec<&Window> {
     }
     rects
 }
+
+pub fn get_window_handles_inside_rect(windows: &[Window], rect: Rect) -> Vec<HWND> {
+    let mut hwnds: Vec<HWND> = Default::default();
+    for window in windows {
+        // HACK: We get some precision errors, so to counteract that we just inflate the valid bounds a bit
+        if window.rect.inflate(1.0).intersects(rect) {
+            hwnds.push(window.hwnd);
+        }
+    }
+    hwnds
+}

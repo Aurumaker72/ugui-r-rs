@@ -45,14 +45,15 @@ impl Ugui {
         self.canvas.as_mut().unwrap().set_clip_rect(rect.to_sdl());
 
         // 2. Repaint all controls inside the affected rect, skipping invisible ones
-        let binding = self.windows.clone();
-        let affected_windows = get_windows_inside_rect(&binding, rect);
-        println!("Repainting {} windows...", affected_windows.len());
-        for window in affected_windows {
-            if !self.get_window_style(window.hwnd).contains(Styles::Visible) {
+        let affected_windows = get_window_handles_inside_rect(&self.windows, rect);
+
+        for hwnd in affected_windows {
+            let window = window_from_hwnd(&self.windows, hwnd);
+
+            if !window.styles.contains(Styles::Visible) {
                 continue;
             }
-            (window.procedure)(self, window.hwnd, Message::Paint);
+            (window.procedure)(self, hwnd, Message::Paint);
         }
 
         self.canvas.as_mut().unwrap().set_clip_rect(prev_clip);
