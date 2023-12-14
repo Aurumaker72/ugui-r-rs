@@ -11,11 +11,11 @@ use flagset::FlagSet;
 
 use sdl2::event::{Event, WindowEvent};
 
+use crate::core::util::*;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::render::WindowCanvas;
 use sdl2::ttf::Font;
-use crate::core::util::*;
 
 /// An application, roughly equivalent to a top-level window with a message loop and many child windows.
 #[derive(Default)]
@@ -33,10 +33,8 @@ pub struct Ugui {
 }
 
 impl Ugui {
-
-
-    /// Repaints all controls inside a rectangle, considering their styles
-    fn repaint_inside_rect(&mut self, rect: Rect) {
+    /// Paints all controls inside a rectangle
+    fn paint_rect(&mut self, rect: Rect) {
         let prev_clip = self.canvas.as_mut().unwrap().clip_rect().unwrap_or(
             window_from_hwnd(&self.windows, self.root_hwnd())
                 .rect
@@ -46,19 +44,14 @@ impl Ugui {
         // 1. Set clip region to the control bounds
         self.canvas.as_mut().unwrap().set_clip_rect(rect.to_sdl());
 
-        // 2. Repaint all controls, skipping invisible ones
-        for window in get_windows_inside_rect(&self.windows, rect) {
-            
+        // 2. Repaint all controls inside the affected rect, skipping invisible ones
+        for window in get_windows_inside_rect(&(self.windows.clone()), rect) {
+            if !self.get_window_style(window.hwnd).contains(Styles::Visible) {
+                continue;
+            }
+            (window.procedure)(self, window.hwnd, Message::Paint);
         }
-        // for i in 0..self.windows.len() {
-        //     if !self
-        //         .get_window_style(self.windows[i].hwnd)
-        //         .contains(Styles::Visible)
-        //     {
-        //         continue;
-        //     }
-        //     (self.windows[i].procedure)(self, self.windows[i].hwnd, Message::Paint);
-        // }
+
         self.canvas.as_mut().unwrap().set_clip_rect(prev_clip);
     }
 }
@@ -144,7 +137,7 @@ impl Ugui {
         // HACK: We set the control's invisible flag, and then force a rect-region repaint, so it disappears
         // We can't use normal repaint message since that assumes a valid control exists
         self.set_window_style(hwnd, Styles::None.into());
-        self.repaint_inside_rect(self.get_window_rect(hwnd));
+        self.paint_rect(self.get_window_rect(hwnd));
 
         self.send_message(hwnd, Message::Destroy);
         self.windows.retain(|x| x.hwnd != hwnd);
@@ -480,8 +473,7 @@ impl Ugui {
                         }
                         lmb_down_point = mouse_point;
 
-                        if let Some(control) = window_at_point(&self.windows, lmb_down_point)
-                        {
+                        if let Some(control) = window_at_point(&self.windows, lmb_down_point) {
                             // If focused HWNDs differ, we unfocus the old one
                             if self.focused_hwnd.is_some_and(|x| x != control.hwnd) {
                                 if window_from_hwnd(&self.windows, self.focused_hwnd.unwrap())
@@ -510,16 +502,14 @@ impl Ugui {
                         }
                         // Following assumption is made: We can't have up without down happening prior to it.
                         // The control at the mouse down position thus needs to know if the mouse was released afterwards, either inside or outside of its client area.
-                        if let Some(control) = window_at_point(&self.windows, lmb_down_point)
-                        {
+                        if let Some(control) = window_at_point(&self.windows, lmb_down_point) {
                             self.message_queue.push((control.hwnd, Message::LmbUp));
                         }
                     }
                     Event::MouseMotion { .. } => {
                         // If we have a captured control, it gets special treatment
                         if let Some(captured_hwnd) = self.captured_hwnd {
-                            let captured_window =
-                                window_from_hwnd(&self.windows, captured_hwnd);
+                            let captured_window = window_from_hwnd(&self.windows, captured_hwnd);
                             // 1. Send MouseMove unconditionally
                             self.message_queue.push((captured_hwnd, Message::MouseMove));
 
@@ -537,8 +527,7 @@ impl Ugui {
                                     .push((captured_hwnd, Message::MouseLeave));
                             }
                         } else {
-                            if let Some(control) = window_at_point(&self.windows, mouse_point)
-                            {
+                            if let Some(control) = window_at_point(&self.windows, mouse_point) {
                                 // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
                                 self.message_queue.push((control.hwnd, Message::MouseMove));
 
@@ -559,8 +548,7 @@ impl Ugui {
                     Event::Window { win_event, .. } => match win_event {
                         WindowEvent::SizeChanged(w, h) => {
                             // Update this top-level window's dimensions
-                            let top_level_window =
-                                window_from_hwnd_mut(&mut self.windows, hwnd);
+                            let top_level_window = window_from_hwnd_mut(&mut self.windows, hwnd);
                             top_level_window.rect = Rect {
                                 w: w as f32,
                                 h: h as f32,
@@ -599,6 +587,8 @@ impl Ugui {
             }
 
             for (hwnd, message) in self.message_queue.clone() {
+                // Paint messages should never arrive in the message queue, since they're always directly sent as part of dirty rect processor
+                assert_ne!(message, Message::Paint);
                 self.send_message(hwnd, message);
             }
 
@@ -606,7 +596,7 @@ impl Ugui {
 
             // Repaint all controls inside each dirty rect
             for rect in self.dirty_rects.clone() {
-                self.repaint_inside_rect(rect);
+                self.paint_rect(rect);
             }
 
             // We only need to perform expensive canvas swap if something was actually repainted
