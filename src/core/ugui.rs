@@ -142,7 +142,7 @@ impl Ugui {
 
         self.message_queue.push((hwnd, Message::StylesChanged));
         self.message_queue.push((hwnd, Message::Create));
-        self.invalidate_rect(rect);
+        self.invalidate_hwnd(hwnd);
 
         Some(hwnd)
     }
@@ -262,14 +262,6 @@ impl Ugui {
     pub fn send_message(&mut self, hwnd: HWND, message: Message) -> u64 {
         if Ugui::window_from_hwnd_safe(&self.windows, hwnd).is_none() {
             println!("Tried to send message to non-existent window");
-            return 0;
-        }
-
-        let rect = Ugui::window_from_hwnd(&self.windows, hwnd).rect;
-        self.repaint_inside_rect(rect);
-
-        let invisible = !self.get_window_style(hwnd).contains(Styles::Visible);
-        if invisible && message == Message::Paint {
             return 0;
         }
 
