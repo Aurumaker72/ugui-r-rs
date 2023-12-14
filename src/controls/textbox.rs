@@ -75,6 +75,12 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
             }
         }
+        Message::LmbDown => {
+            ugui.capture_mouse(hwnd);
+        }
+        Message::LmbUp => {
+            ugui.uncapture_mouse(hwnd);
+        }
         Message::TextInput => {
             println!("{}", ugui.typed_text());
         }

@@ -19,7 +19,8 @@ fn main() {
             }
             Message::User(source, kind) => match kind {
                 _BUTTON_CLICK => {
-                    ugui.destroy_window(source);
+
+                    // ugui.destroy_window(source);
                 }
                 _ => {}
             },
