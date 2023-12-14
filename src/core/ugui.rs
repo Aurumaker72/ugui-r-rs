@@ -45,7 +45,10 @@ impl Ugui {
         self.canvas.as_mut().unwrap().set_clip_rect(rect.to_sdl());
 
         // 2. Repaint all controls inside the affected rect, skipping invisible ones
-        for window in get_windows_inside_rect(&(self.windows.clone()), rect) {
+        let binding = self.windows.clone();
+        let affected_windows = get_windows_inside_rect(&binding, rect);
+        println!("Repainting {} windows...", affected_windows.len());
+        for window in affected_windows {
             if !self.get_window_style(window.hwnd).contains(Styles::Visible) {
                 continue;
             }
@@ -550,9 +553,10 @@ impl Ugui {
                             // Update this top-level window's dimensions
                             let top_level_window = window_from_hwnd_mut(&mut self.windows, hwnd);
                             top_level_window.rect = Rect {
-                                w: w as f32,
-                                h: h as f32,
-                                ..top_level_window.rect
+                                x: 0.0,
+                                y: 0.0,
+                                w: w as f32 + 2.0,
+                                h: h as f32 + 2.0,
                             };
                             self.invalidate_hwnd(hwnd);
                         }
@@ -601,7 +605,6 @@ impl Ugui {
 
             // We only need to perform expensive canvas swap if something was actually repainted
             if !self.dirty_rects.is_empty() {
-                println!("Repainted {} rects", self.dirty_rects.len());
                 self.canvas.as_mut().unwrap().present();
             }
 

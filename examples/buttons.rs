@@ -17,9 +17,6 @@ fn main() {
             Message::LmbDown => {
                 println!("down {:?}", hwnd);
             }
-            Message::Paint => {
-                println!("paint main");
-            }
             Message::User(source, kind) => match kind {
                 _BUTTON_CLICK => {
                     ugui.destroy_window(source);
