@@ -49,8 +49,8 @@ fn main() {
         )
         .unwrap();
 
-    for i in 0..5 {
-        for j in 0..5 {
+    for i in 0..10 {
+        for j in 0..20 {
             ugui.create_window(
                 "BUTTON".to_string(),
                 "Hello World!".to_string(),

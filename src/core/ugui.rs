@@ -151,9 +151,19 @@ impl Ugui {
     ///
     /// # Arguments
     ///
-    /// * `hwnd`: The window's handle
+    /// * `rect`: The bounds to invalidate
     pub fn invalidate_rect(&mut self, rect: Rect) {
         self.dirty_rects.push(rect);
+    }
+
+    /// Invalidates a control's rectangle, marking all controls inside it to receive Paint message and be composited eventually
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    pub fn invalidate_hwnd(&mut self, hwnd: HWND) {
+        self.dirty_rects
+            .push(Ugui::window_from_hwnd(&self.windows, hwnd).rect);
     }
 
     /// Gets the most recent typed text
@@ -226,6 +236,18 @@ impl Ugui {
     ///
     pub fn get_window_rect(&self, hwnd: HWND) -> Rect {
         Ugui::window_from_hwnd(&self.windows, hwnd).rect
+    }
+
+    /// Sets a window's bounds and invalidates its visuals
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    /// * `rect`: The window's bounds
+    pub fn set_window_rect(&mut self, hwnd: HWND, rect: Rect) {
+        let window = Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
+        window.rect = rect;
+        self.invalidate_hwnd(hwnd);
     }
 
     /// Sends a message to the specified window and processes it immediately
@@ -589,12 +611,12 @@ impl Ugui {
                             // Update this top-level window's dimensions
                             let top_level_window =
                                 Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
-                            top_level_window.rect.w = w as f32;
-                            top_level_window.rect.h = h as f32;
-
-                            for window in self.windows.clone() {
-                                self.invalidate_rect(window.rect);
-                            }
+                            top_level_window.rect = Rect {
+                                w: w as f32,
+                                h: h as f32,
+                                ..top_level_window.rect
+                            };
+                            self.invalidate_hwnd(hwnd);
                         }
                         _ => {}
                     },
