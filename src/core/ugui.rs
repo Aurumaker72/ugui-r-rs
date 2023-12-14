@@ -102,6 +102,16 @@ impl Ugui {
         Some(hwnd)
     }
 
+    /// Gets the focused window
+    pub fn get_focus(&self) -> Option<HWND> {
+        self.focused_hwnd
+    }
+
+    /// Gets the captured window
+    pub fn get_capture(&self) -> Option<HWND> {
+        self.captured_hwnd
+    }
+
     /// Invalidates a rectangle, marking all controls inside it to receive Paint message and be composited eventually
     ///
     /// # Arguments
