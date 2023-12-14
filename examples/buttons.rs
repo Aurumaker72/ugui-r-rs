@@ -49,8 +49,8 @@ fn main() {
         )
         .unwrap();
 
-    for i in 0..10 {
-        for j in 0..20 {
+    for i in 0..5 {
+        for j in 0..5 {
             ugui.create_window(
                 "BUTTON".to_string(),
                 "Hello World!".to_string(),
@@ -76,7 +76,7 @@ fn main() {
                 button_style(),
                 Rect {
                     x: (i as f32 * 90.0) + 10.0 + (i as f32 * 2.0),
-                    y: (j as f32 * 20.0) + 200.0 + (j as f32 * 2.0),
+                    y: (j as f32 * 20.0) + 135.0 + (j as f32 * 2.0),
                     w: 90.0,
                     h: 20.0,
                 },
