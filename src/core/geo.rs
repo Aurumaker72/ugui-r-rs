@@ -127,6 +127,12 @@ impl Rect {
         }
     }
 
+    pub fn intersects(&self, other: Rect) -> bool {
+        !(self.x > other.right()
+            || self.right() < other.x
+            || self.y > other.bottom()
+            || self.bottom() < other.y)
+    }
     pub fn to_sdl(&self) -> SdlRect {
         SdlRect::new(self.x as i32, self.y as i32, self.w as u32, self.h as u32)
     }

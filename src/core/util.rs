@@ -96,11 +96,8 @@ pub fn fix_dependent_visual_handle(windows: &[Window], hwnd: Option<HWND>) -> Op
 pub fn get_windows_inside_rect(windows: &[Window], rect: Rect) -> Vec<&Window> {
     let mut rects: Vec<&Window> = Default::default();
     for window in windows {
-        if window.rect.top_left().inside(rect)
-            || window.rect.top_right().inside(rect)
-            || window.rect.bottom_left().inside(rect)
-            || window.rect.bottom_right().inside(rect)
-        {
+        // HACK: We get some precision errors, so to counteract that we just inflate the valid bounds a bit
+        if window.rect.inflate(1.0).intersects(rect) {
             rects.push(window);
         }
     }

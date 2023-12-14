@@ -93,7 +93,7 @@ impl Ugui {
 
         self.message_queue.push((hwnd, Message::StylesChanged));
         self.message_queue.push((hwnd, Message::Create));
-        self.invalidate_hwnd(hwnd);
+        self.invalidate_rect(rect);
 
         Some(hwnd)
     }
@@ -601,7 +601,7 @@ impl Ugui {
 
             // We only need to perform expensive canvas swap if something was actually repainted
             if !self.dirty_rects.is_empty() {
-                println!("Swapping buffers...");
+                println!("Repainted {} rects", self.dirty_rects.len());
                 self.canvas.as_mut().unwrap().present();
             }
 
