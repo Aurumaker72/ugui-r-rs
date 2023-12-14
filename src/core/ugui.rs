@@ -15,6 +15,7 @@ use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::render::WindowCanvas;
 use sdl2::ttf::Font;
+use crate::core::util::*;
 
 /// An application, roughly equivalent to a top-level window with a message loop and many child windows.
 #[derive(Default)]
@@ -32,75 +33,32 @@ pub struct Ugui {
 }
 
 impl Ugui {
-    fn window_at_point(windows: &[Window], point: Point) -> Option<&Window> {
-        if let Some(control) = windows
-            .iter()
-            .rev()
-            .find(|x| point.inside(x.rect) && x.styles.contains(Styles::Visible))
-        {
-            return Some(control);
-        }
-        return None;
-    }
 
-    fn window_from_hwnd_safe(windows: &[Window], hwnd: HWND) -> Option<&Window> {
-        windows.iter().find(|x| x.hwnd == hwnd)
-    }
-
-    fn window_from_hwnd(windows: &[Window], hwnd: HWND) -> &Window {
-        if let Some(window) = windows.iter().find(|x| x.hwnd == hwnd) {
-            return window;
-        }
-        panic!("No window with specified HWND found");
-    }
-    fn window_from_hwnd_mut(windows: &mut [Window], hwnd: HWND) -> &mut Window {
-        for i in 0..windows.len() {
-            if windows[i].hwnd == hwnd {
-                return &mut windows[i];
-            }
-        }
-        panic!("No window with specified HWND found");
-    }
-
-    /// Clears a dependent optional handle if it points to an invalid control
-    fn fix_dependent_handle(windows: &[Window], hwnd: Option<HWND>) -> Option<HWND> {
-        if hwnd.is_none() {
-            return hwnd;
-        }
-
-        let window = Ugui::window_from_hwnd_safe(windows, hwnd.unwrap());
-
-        if window.is_none()
-            || !window.unwrap().styles.contains(Styles::Enabled)
-            || !window.unwrap().styles.contains(Styles::Visible)
-        {
-            println!("Dependent handle points to inappropriate control");
-            return None;
-        }
-        return hwnd;
-    }
 
     /// Repaints all controls inside a rectangle, considering their styles
     fn repaint_inside_rect(&mut self, rect: Rect) {
-        // 1. Set clip region to the control bounds
-        // 2. Repaint all controls, skipping invisible ones
-        // FIXME: PERF: Only repaint controls whose client rectangle overlaps the repainted control's
         let prev_clip = self.canvas.as_mut().unwrap().clip_rect().unwrap_or(
-            Ugui::window_from_hwnd(&self.windows, self.root_hwnd())
+            window_from_hwnd(&self.windows, self.root_hwnd())
                 .rect
                 .to_sdl(),
         );
 
+        // 1. Set clip region to the control bounds
         self.canvas.as_mut().unwrap().set_clip_rect(rect.to_sdl());
-        for i in 0..self.windows.len() {
-            if !self
-                .get_window_style(self.windows[i].hwnd)
-                .contains(Styles::Visible)
-            {
-                continue;
-            }
-            (self.windows[i].procedure)(self, self.windows[i].hwnd, Message::Paint);
+
+        // 2. Repaint all controls, skipping invisible ones
+        for window in get_windows_inside_rect(&self.windows, rect) {
+            
         }
+        // for i in 0..self.windows.len() {
+        //     if !self
+        //         .get_window_style(self.windows[i].hwnd)
+        //         .contains(Styles::Visible)
+        //     {
+        //         continue;
+        //     }
+        //     (self.windows[i].procedure)(self, self.windows[i].hwnd, Message::Paint);
+        // }
         self.canvas.as_mut().unwrap().set_clip_rect(prev_clip);
     }
 }
@@ -163,7 +121,7 @@ impl Ugui {
     /// * `hwnd`: The window's handle
     pub fn invalidate_hwnd(&mut self, hwnd: HWND) {
         self.dirty_rects
-            .push(Ugui::window_from_hwnd(&self.windows, hwnd).rect);
+            .push(window_from_hwnd(&self.windows, hwnd).rect);
     }
 
     /// Gets the most recent typed text
@@ -191,8 +149,8 @@ impl Ugui {
         self.send_message(hwnd, Message::Destroy);
         self.windows.retain(|x| x.hwnd != hwnd);
 
-        self.captured_hwnd = Ugui::fix_dependent_handle(&self.windows, self.captured_hwnd);
-        self.focused_hwnd = Ugui::fix_dependent_handle(&self.windows, self.focused_hwnd);
+        self.captured_hwnd = fix_dependent_visual_handle(&self.windows, self.captured_hwnd);
+        self.focused_hwnd = fix_dependent_visual_handle(&self.windows, self.focused_hwnd);
     }
 
     /// Gets a window's styles
@@ -204,7 +162,7 @@ impl Ugui {
     /// returns: FlagSet<Styles> The window's styles
     ///
     pub fn get_window_style(&self, hwnd: HWND) -> FlagSet<Styles> {
-        Ugui::window_from_hwnd(&self.windows, hwnd).styles
+        window_from_hwnd(&self.windows, hwnd).styles
     }
 
     /// Sets a window's styles and notifies it about the changes
@@ -215,12 +173,12 @@ impl Ugui {
     /// * `styles`: The styles
     ///
     pub fn set_window_style(&mut self, hwnd: HWND, styles: FlagSet<Styles>) {
-        let window = Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
+        let window = window_from_hwnd_mut(&mut self.windows, hwnd);
         let rect = window.rect;
         window.styles = styles;
 
-        self.captured_hwnd = Ugui::fix_dependent_handle(&self.windows, self.captured_hwnd);
-        self.focused_hwnd = Ugui::fix_dependent_handle(&self.windows, self.focused_hwnd);
+        self.captured_hwnd = fix_dependent_visual_handle(&self.windows, self.captured_hwnd);
+        self.focused_hwnd = fix_dependent_visual_handle(&self.windows, self.focused_hwnd);
 
         self.send_message(hwnd, Message::StylesChanged);
         self.invalidate_rect(rect);
@@ -235,7 +193,7 @@ impl Ugui {
     /// returns: Rect The window's bounds relative to the top-left of the top-level window
     ///
     pub fn get_window_rect(&self, hwnd: HWND) -> Rect {
-        Ugui::window_from_hwnd(&self.windows, hwnd).rect
+        window_from_hwnd(&self.windows, hwnd).rect
     }
 
     /// Sets a window's bounds and invalidates its visuals
@@ -245,7 +203,7 @@ impl Ugui {
     /// * `hwnd`: The window's handle
     /// * `rect`: The window's bounds
     pub fn set_window_rect(&mut self, hwnd: HWND, rect: Rect) {
-        let window = Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
+        let window = window_from_hwnd_mut(&mut self.windows, hwnd);
         window.rect = rect;
         self.invalidate_hwnd(hwnd);
     }
@@ -260,12 +218,12 @@ impl Ugui {
     /// returns: u64 The window's procedure response
     ///
     pub fn send_message(&mut self, hwnd: HWND, message: Message) -> u64 {
-        if Ugui::window_from_hwnd_safe(&self.windows, hwnd).is_none() {
+        if window_from_hwnd_safe(&self.windows, hwnd).is_none() {
             println!("Tried to send message to non-existent window");
             return 0;
         }
 
-        return (Ugui::window_from_hwnd(&self.windows, hwnd).procedure)(self, hwnd, message);
+        return (window_from_hwnd(&self.windows, hwnd).procedure)(self, hwnd, message);
     }
 
     /// Gets the window's parent
@@ -277,7 +235,7 @@ impl Ugui {
     /// returns: Option<HWND> The window's parent, or None if the window is a top-level window
     ///
     pub fn get_parent(&self, hwnd: HWND) -> Option<HWND> {
-        Ugui::window_from_hwnd(&self.windows, hwnd).parent
+        window_from_hwnd(&self.windows, hwnd).parent
     }
 
     /// Gets the window's children
@@ -295,7 +253,7 @@ impl Ugui {
         for window in &self.windows {
             let mut current_hwnd = window.hwnd;
             loop {
-                let current_window = Ugui::window_from_hwnd(&self.windows, current_hwnd);
+                let current_window = window_from_hwnd(&self.windows, current_hwnd);
                 if current_window.parent.is_none() {
                     break;
                 }
@@ -319,7 +277,7 @@ impl Ugui {
     /// returns: FlagSet<Styles> A bitfield of styles
     ///
     pub fn get_styles(&self, hwnd: HWND) -> FlagSet<Styles> {
-        Ugui::window_from_hwnd(&self.windows, hwnd).styles
+        window_from_hwnd(&self.windows, hwnd).styles
     }
 
     /// Gets a window's user data
@@ -330,7 +288,7 @@ impl Ugui {
     ///
     /// returns: u64 The user data associated with the window
     pub fn get_udata(&self, hwnd: HWND) -> u64 {
-        Ugui::window_from_hwnd(&self.windows, hwnd).state_0
+        window_from_hwnd(&self.windows, hwnd).state_0
     }
 
     /// Sets a window's user data
@@ -341,7 +299,7 @@ impl Ugui {
     /// * `state`: The desired user data
     ///
     pub fn set_udata(&mut self, hwnd: HWND, state: u64) {
-        Ugui::window_from_hwnd_mut(&mut self.windows, hwnd).state_0 = state
+        window_from_hwnd_mut(&mut self.windows, hwnd).state_0 = state
     }
 
     /// Captures the mouse, receiving all of its events and preventing propagation to other controls
@@ -483,7 +441,7 @@ impl Ugui {
 
         let _ttf_context = sdl2::ttf::init().unwrap();
 
-        let top_level_window = Ugui::window_from_hwnd(&self.windows, hwnd);
+        let top_level_window = window_from_hwnd(&self.windows, hwnd);
         let mut window_builder = &mut video_subsystem.window(
             &top_level_window.caption,
             top_level_window.rect.w as u32,
@@ -522,11 +480,11 @@ impl Ugui {
                         }
                         lmb_down_point = mouse_point;
 
-                        if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
+                        if let Some(control) = window_at_point(&self.windows, lmb_down_point)
                         {
                             // If focused HWNDs differ, we unfocus the old one
                             if self.focused_hwnd.is_some_and(|x| x != control.hwnd) {
-                                if Ugui::window_from_hwnd(&self.windows, self.focused_hwnd.unwrap())
+                                if window_from_hwnd(&self.windows, self.focused_hwnd.unwrap())
                                     .styles
                                     .contains(Styles::Focusable)
                                 {
@@ -538,7 +496,7 @@ impl Ugui {
                             self.focused_hwnd = Some(control.hwnd);
                             self.message_queue.push((control.hwnd, Message::LmbDown));
 
-                            if Ugui::window_from_hwnd(&self.windows, control.hwnd)
+                            if window_from_hwnd(&self.windows, control.hwnd)
                                 .styles
                                 .contains(Styles::Focusable)
                             {
@@ -552,7 +510,7 @@ impl Ugui {
                         }
                         // Following assumption is made: We can't have up without down happening prior to it.
                         // The control at the mouse down position thus needs to know if the mouse was released afterwards, either inside or outside of its client area.
-                        if let Some(control) = Self::window_at_point(&self.windows, lmb_down_point)
+                        if let Some(control) = window_at_point(&self.windows, lmb_down_point)
                         {
                             self.message_queue.push((control.hwnd, Message::LmbUp));
                         }
@@ -561,7 +519,7 @@ impl Ugui {
                         // If we have a captured control, it gets special treatment
                         if let Some(captured_hwnd) = self.captured_hwnd {
                             let captured_window =
-                                Ugui::window_from_hwnd(&self.windows, captured_hwnd);
+                                window_from_hwnd(&self.windows, captured_hwnd);
                             // 1. Send MouseMove unconditionally
                             self.message_queue.push((captured_hwnd, Message::MouseMove));
 
@@ -579,13 +537,13 @@ impl Ugui {
                                     .push((captured_hwnd, Message::MouseLeave));
                             }
                         } else {
-                            if let Some(control) = Self::window_at_point(&self.windows, mouse_point)
+                            if let Some(control) = window_at_point(&self.windows, mouse_point)
                             {
                                 // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
                                 self.message_queue.push((control.hwnd, Message::MouseMove));
 
                                 if let Some(prev_control) =
-                                    Self::window_at_point(&self.windows, last_mouse_position)
+                                    window_at_point(&self.windows, last_mouse_position)
                                 {
                                     if control.hwnd != prev_control.hwnd {
                                         self.message_queue
@@ -602,7 +560,7 @@ impl Ugui {
                         WindowEvent::SizeChanged(w, h) => {
                             // Update this top-level window's dimensions
                             let top_level_window =
-                                Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
+                                window_from_hwnd_mut(&mut self.windows, hwnd);
                             top_level_window.rect = Rect {
                                 w: w as f32,
                                 h: h as f32,
