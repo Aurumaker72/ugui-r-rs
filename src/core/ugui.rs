@@ -24,11 +24,11 @@ pub struct Ugui {
     message_queue: Vec<(HWND, Message)>,
     captured_hwnd: Option<HWND>,
     focused_hwnd: Option<HWND>,
-    /// Whether the buffers need to be swapped. It's expensive to swap buffers, so we only do this when receiving paint events
-    needs_swap: bool,
     /// The last text inputted by the user via keyboard
     /// We need to store this as an intermediary here, since it would have to be squeezed into a Message otherwise, thus making it non-copyable
     last_text_input: String,
+    /// Regions relative to top-level window which need to be repainted
+    dirty_rects: Vec<Rect>,
 }
 
 impl Ugui {
@@ -142,9 +142,18 @@ impl Ugui {
 
         self.message_queue.push((hwnd, Message::StylesChanged));
         self.message_queue.push((hwnd, Message::Create));
-        self.message_queue.push((hwnd, Message::Paint));
+        self.invalidate_rect(rect);
 
         Some(hwnd)
+    }
+
+    /// Invalidates a rectangle, marking all controls inside it to receive Paint message and be composited eventually
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    pub fn invalidate_rect(&mut self, rect: Rect) {
+        self.dirty_rects.push(rect);
     }
 
     /// Gets the most recent typed text
@@ -197,14 +206,14 @@ impl Ugui {
     ///
     pub fn set_window_style(&mut self, hwnd: HWND, styles: FlagSet<Styles>) {
         let window = Ugui::window_from_hwnd_mut(&mut self.windows, hwnd);
+        let rect = window.rect;
         window.styles = styles;
 
         self.captured_hwnd = Ugui::fix_dependent_handle(&self.windows, self.captured_hwnd);
         self.focused_hwnd = Ugui::fix_dependent_handle(&self.windows, self.focused_hwnd);
 
-        // FIXME: Is it ok to just force a paint here? Isn't this supposed to go onto the queue?
         self.send_message(hwnd, Message::StylesChanged);
-        self.send_message(hwnd, Message::Paint);
+        self.invalidate_rect(rect);
     }
 
     /// Gets a window's bounds
@@ -232,10 +241,6 @@ impl Ugui {
         if Ugui::window_from_hwnd_safe(&self.windows, hwnd).is_none() {
             println!("Tried to send message to non-existent window");
             return 0;
-        }
-
-        if message == Message::Paint {
-            self.needs_swap = true;
         }
 
         let rect = Ugui::window_from_hwnd(&self.windows, hwnd).rect;
@@ -497,12 +502,6 @@ impl Ugui {
         self.canvas = Some(sdl_window.into_canvas().present_vsync().build().unwrap());
         let mut event_pump = sdl_context.event_pump().unwrap();
 
-        // let default_font = Some(
-        //     ttf_context
-        //         .load_font(Path::new("../../src/skin/segoe.ttf"), 16)
-        //         .unwrap(),
-        // );
-
         let mut lmb_down_point = Point::default();
         let mut last_mouse_position = Point::default();
 
@@ -603,8 +602,8 @@ impl Ugui {
                             top_level_window.rect.w = w as f32;
                             top_level_window.rect.h = h as f32;
 
-                            for window in &self.windows {
-                                self.message_queue.push((window.hwnd, Message::Paint));
+                            for window in self.windows.clone() {
+                                self.invalidate_rect(window.rect);
                             }
                         }
                         _ => {}
@@ -643,10 +642,18 @@ impl Ugui {
 
             self.message_queue.clear();
 
-            if self.needs_swap {
-                self.canvas.as_mut().unwrap().present();
-                self.needs_swap = false;
+            // Repaint all controls inside each dirty rect
+            for rect in self.dirty_rects.clone() {
+                self.repaint_inside_rect(rect);
             }
+
+            // We only need to perform expensive canvas swap if something was actually repainted
+            if !self.dirty_rects.is_empty() {
+                println!("Swapping buffers...");
+                self.canvas.as_mut().unwrap().present();
+            }
+
+            self.dirty_rects.clear();
         }
 
         for window in self.windows.clone().iter().rev() {

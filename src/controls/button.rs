@@ -7,7 +7,6 @@ use crate::HWND;
 use flagset::FlagSet;
 use num_traits::{FromPrimitive, ToPrimitive};
 
-
 use std::collections::HashMap;
 
 pub fn button_style() -> FlagSet<Styles> {
@@ -25,6 +24,8 @@ pub const BUTTON_CLICK: u64 = 50;
 ///
 /// returns: u64 The message response
 pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
+    let rect = ugui.get_window_rect(hwnd);
+
     match message {
         Message::StylesChanged => {
             let style = ugui.get_styles(hwnd);
@@ -38,8 +39,8 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
                 return 0;
             }
+            ugui.invalidate_rect(rect);
             ugui.set_udata(hwnd, VisualState::Active.to_u64().unwrap());
-            ugui.send_message(hwnd, Message::Paint);
             ugui.capture_mouse(hwnd);
             ugui.send_message(ugui.root_hwnd(), Message::User(hwnd, BUTTON_CLICK));
         }
@@ -48,6 +49,8 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
                 return 0;
             }
+            ugui.invalidate_rect(rect);
+
             let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
 
             if state == VisualState::Hover {
@@ -55,7 +58,6 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
             }
-            ugui.send_message(hwnd, Message::Paint);
             ugui.uncapture_mouse(hwnd);
         }
         Message::MouseEnter => {
@@ -63,6 +65,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
                 return 0;
             }
+            ugui.invalidate_rect(rect);
             let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
 
             if state == VisualState::Hover {
@@ -70,13 +73,13 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 ugui.set_udata(hwnd, VisualState::Hover.to_u64().unwrap());
             }
-            ugui.send_message(hwnd, Message::Paint);
         }
         Message::MouseLeave => {
             if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
                 ugui.set_udata(hwnd, VisualState::Disabled.to_u64().unwrap());
                 return 0;
             }
+            ugui.invalidate_rect(rect);
             let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
 
             if state == VisualState::Active {
@@ -84,7 +87,6 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 ugui.set_udata(hwnd, VisualState::Normal.to_u64().unwrap());
             }
-            ugui.send_message(hwnd, Message::Paint);
         }
         Message::Paint => {
             let state: VisualState = FromPrimitive::from_u64(ugui.get_udata(hwnd)).unwrap();
