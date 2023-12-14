@@ -463,16 +463,6 @@ impl Ugui {
     /// # Arguments
     ///
     /// * `hwnd`: The window's handle
-    ///
-    /// returns: ()
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let hwnd = Ugui::default();
-    /// let hwnd = ugui.create_window();
-    /// ugui.show_window(hwnd);
-    /// ```
     pub fn show_window(&mut self, hwnd: HWND) {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
