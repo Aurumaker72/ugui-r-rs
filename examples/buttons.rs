@@ -1,5 +1,6 @@
 use std::ops::BitXor;
 use ugui_r_rs::controls::button::{button_proc, button_style};
+use ugui_r_rs::controls::scrollbar::{scrollbar_proc, scrollbar_style};
 use ugui_r_rs::controls::textbox::textbox_proc;
 use ugui_r_rs::controls::window::{window_proc, window_style};
 use ugui_r_rs::core::geo::Rect;
@@ -19,7 +20,7 @@ fn main() {
             }
             Message::User(source, kind) => match kind {
                 _BUTTON_CLICK => {
-
+                    ugui.set_caption(hwnd, "a".to_string());
                     // ugui.destroy_window(source);
                 }
                 _ => {}
@@ -78,6 +79,25 @@ fn main() {
                 },
                 Some(hwnd),
                 textbox_proc,
+            )
+            .unwrap();
+        }
+    }
+
+    for i in 0..5 {
+        for j in 0..5 {
+            ugui.create_window(
+                "SCROLL".to_string(),
+                Default::default(),
+                scrollbar_style(),
+                Rect {
+                    x: (i as f32 * 20.0) + 10.0 + (i as f32 * 2.0),
+                    y: (j as f32 * 90.0) + 250.0 + (j as f32 * 2.0),
+                    w: 20.0,
+                    h: 90.0,
+                },
+                Some(hwnd),
+                scrollbar_proc,
             )
             .unwrap();
         }
