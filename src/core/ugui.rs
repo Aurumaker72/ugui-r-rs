@@ -1,4 +1,5 @@
 extern crate sdl2;
+
 use crate::core::geo::Alignment;
 use crate::core::geo::{Point, Rect};
 use crate::core::messages::Message;
@@ -8,9 +9,11 @@ use crate::CENTER_SCREEN;
 use crate::HWND;
 use crate::WNDPROC;
 use flagset::FlagSet;
+use std::any::Any;
 
 use sdl2::event::{Event, WindowEvent};
 
+use crate::core::dynval::Value;
 use crate::core::util::*;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
@@ -92,7 +95,7 @@ impl Ugui {
             rect,
             parent,
             procedure,
-            state_0: 0,
+            user_data: Default::default(),
         });
 
         self.message_queue.push((hwnd, Message::StylesChanged));
@@ -292,10 +295,14 @@ impl Ugui {
     /// # Arguments
     ///
     /// * `hwnd`: The window's handle
+    /// * `key`: The user data entry's key
     ///
-    /// returns: u64 The user data associated with the window
-    pub fn get_udata(&self, hwnd: HWND) -> u64 {
-        window_from_hwnd(&self.windows, hwnd).state_0
+    /// returns: Option<Box<dyn Any>> The user data associated with the window
+    pub fn get_udata(&self, hwnd: HWND, key: &str) -> Option<Box<dyn Value>> {
+        if let Some(value) = window_from_hwnd(&self.windows, hwnd).user_data.get(key) {
+            return Some(dyn_clone::clone_box(&**value));
+        }
+        None
     }
 
     /// Sets a window's user data
@@ -303,10 +310,13 @@ impl Ugui {
     /// # Arguments
     ///
     /// * `hwnd`: The window's handle
-    /// * `state`: The desired user data
+    /// * `key`: The key to place the data into
+    /// * `value`: The desired user data
     ///
-    pub fn set_udata(&mut self, hwnd: HWND, state: u64) {
-        window_from_hwnd_mut(&mut self.windows, hwnd).state_0 = state
+    pub fn set_udata(&mut self, hwnd: HWND, key: String, value: Box<dyn Value>) {
+        window_from_hwnd_mut(&mut self.windows, hwnd)
+            .user_data
+            .insert(key, value);
     }
 
     /// Captures the mouse, receiving all of its events and preventing propagation to other controls
@@ -622,8 +632,9 @@ impl Ugui {
             self.dirty_rects.clear();
         }
 
-        for window in self.windows.clone().iter().rev() {
-            self.destroy_window(window.hwnd);
-        }
+        // FIXME: Destroy windows on exit!
+        // for window in self.windows.iter().rev() {
+        //     self.destroy_window(window.hwnd);
+        // }
     }
 }

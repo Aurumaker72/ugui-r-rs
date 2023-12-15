@@ -1,4 +1,4 @@
-#[derive(Eq, PartialEq, Hash, FromPrimitive, ToPrimitive)]
+#[derive(Eq, PartialEq, Hash, Clone)]
 pub enum VisualState {
     Normal,
     Hover,

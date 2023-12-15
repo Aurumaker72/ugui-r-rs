@@ -1,22 +1,16 @@
 extern crate sdl2;
 
 use crate::WNDPROC;
+use std::collections::HashMap;
 
-use crate::core::geo::{Rect};
+use crate::core::geo::Rect;
 
+use crate::core::dynval;
 use crate::core::styles::Styles;
 use flagset::FlagSet;
 
-
-
-
-
-
-
-
 use crate::HWND;
 
-#[derive(Clone)]
 pub(crate) struct Window {
     pub hwnd: HWND,
     pub class: String,
@@ -25,5 +19,5 @@ pub(crate) struct Window {
     pub rect: Rect,
     pub parent: Option<HWND>,
     pub procedure: WNDPROC,
-    pub state_0: u64,
+    pub user_data: HashMap<String, Box<dyn dynval::Value>>,
 }
