@@ -84,17 +84,17 @@ fn main() {
         }
     }
 
-    for i in 0..5 {
-        for j in 0..5 {
+    for i in 0..20 {
+        for j in 0..2 {
             ugui.create_window(
                 "SCROLL".to_string(),
                 Default::default(),
                 scrollbar_style(),
                 Rect {
                     x: (i as f32 * 20.0) + 10.0 + (i as f32 * 2.0),
-                    y: (j as f32 * 90.0) + 250.0 + (j as f32 * 2.0),
+                    y: (j as f32 * 120.0) + 250.0 + (j as f32 * 2.0),
                     w: 20.0,
-                    h: 90.0,
+                    h: 120.0,
                 },
                 Some(hwnd),
                 scrollbar_proc,

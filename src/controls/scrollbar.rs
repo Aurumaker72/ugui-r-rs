@@ -147,7 +147,8 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             }
         }
         Message::Paint => {
-            let rect = ugui.get_window_rect(hwnd);
+            let back_rect = ugui.get_window_rect(hwnd);
+            let thumb_rect = ugui.get_window_rect(hwnd);
 
             let colors = HashMap::from([
                 (
@@ -169,8 +170,14 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             ]);
 
             ugui.paint_quad(
-                rect,
+                back_rect,
                 colors[visual_state.as_ref().unwrap()].0,
+                Color::BLACK,
+                0.0,
+            );
+            ugui.paint_quad(
+                thumb_rect,
+                colors[visual_state.as_ref().unwrap()].1,
                 Color::BLACK,
                 0.0,
             );
