@@ -366,6 +366,29 @@ impl Ugui {
             .unwrap();
     }
 
+    /// Sets a window's caption
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    /// * `value`: The new caption
+    ///
+    pub fn set_caption(&mut self, hwnd: HWND, value: String) {
+        let window = window_from_hwnd_mut(&mut self.windows, hwnd);
+        window.caption = value;
+
+        // The top-level window gets special treatment: its caption is the title
+        if window.parent == None {
+            self.canvas
+                .as_mut()
+                .unwrap()
+                .window_mut()
+                .set_title(window.caption.as_str());
+        } else {
+            self.dirty_rects.push(window.rect);
+        }
+    }
+
     /// Paints unformatted text
     ///
     /// # Arguments
