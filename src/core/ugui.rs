@@ -313,10 +313,10 @@ impl Ugui {
     /// * `key`: The key to place the data into
     /// * `value`: The desired user data
     ///
-    pub fn set_udata(&mut self, hwnd: HWND, key: String, value: Box<dyn Value>) {
+    pub fn set_udata(&mut self, hwnd: HWND, key: &str, value: Box<dyn Value>) {
         window_from_hwnd_mut(&mut self.windows, hwnd)
             .user_data
-            .insert(key, value);
+            .insert(key.to_string(), value);
     }
 
     /// Captures the mouse, receiving all of its events and preventing propagation to other controls
