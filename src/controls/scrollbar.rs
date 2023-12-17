@@ -7,16 +7,26 @@ use crate::HWND;
 use flagset::FlagSet;
 use num_traits::{FromPrimitive, ToPrimitive};
 
+use sdl2::pixels::Color;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::string::ToString;
-use sdl2::pixels::Color;
+
+#[derive(Copy, Clone, Default, Debug)]
+struct ScrollbarState {
+    /// The thumb's size in pixels
+    size: i32,
+    /// The scroll percentage
+    value: f32,
+    /// The current visual state
+    visual_state: VisualState,
+}
 
 pub fn scrollbar_style() -> FlagSet<Styles> {
     Styles::Visible | Styles::Enabled | Styles::Focusable
 }
 
-pub const SCROLLBAR_VALUE_KEY: &str = "value";
+pub const SCROLLBAR_STATE_KEY: &str = "state";
 pub const SCROLLBAR_CHANGED: u64 = 53;
 
 /// The message procedure implementation for a scrollbar
@@ -30,121 +40,60 @@ pub const SCROLLBAR_CHANGED: u64 = 53;
 /// returns: u64 The message response
 pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     let rect = ugui.get_window_rect(hwnd);
-    let mut visual_state: Option<VisualState> = None;
-    if let Some(data) = ugui.get_udata(hwnd, "visual_state") {
-        visual_state = Some(*(data.downcast::<VisualState>().unwrap()));
+    let mut state: Option<ScrollbarState> = None;
+    if let Some(data) = ugui.get_udata(hwnd, SCROLLBAR_STATE_KEY) {
+        state = Some(*(data.downcast::<ScrollbarState>().unwrap()));
     }
 
     match message {
         Message::StylesChanged => {
             let style = ugui.get_styles(hwnd);
+            let mut state = ScrollbarState::default();
 
             if !style.contains(Styles::Enabled) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Disabled),
-                );
+                state.visual_state = VisualState::Disabled;
             } else {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Normal),
-                );
+                state.visual_state = VisualState::Normal;
             }
+
+            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state));
         }
         Message::LmbDown => {
-            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Disabled),
-                );
-                return 0;
-            }
             ugui.invalidate_rect(rect);
-            ugui.set_udata(
-                hwnd,
-                "visual_state".to_string(),
-                Box::new(VisualState::Active),
-            );
+            state.unwrap().visual_state = VisualState::Active;
+            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state));
             ugui.capture_mouse(hwnd);
         }
         Message::LmbUp => {
-            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Disabled),
-                );
-                return 0;
-            }
             ugui.invalidate_rect(rect);
 
-            if visual_state.is_some_and(|x| x == VisualState::Hover) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Normal),
-                );
+            if state.unwrap().visual_state == VisualState::Hover {
+                state.unwrap().visual_state = VisualState::Normal;
             } else {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Hover),
-                );
+                state.unwrap().visual_state = VisualState::Hover;
             }
+            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state));
             ugui.uncapture_mouse(hwnd);
         }
         Message::MouseEnter => {
-            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Disabled),
-                );
-                return 0;
-            }
             ugui.invalidate_rect(rect);
 
-            if visual_state.is_some_and(|x| x == VisualState::Hover) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Active),
-                );
+            if state.unwrap().visual_state == VisualState::Hover {
+                state.unwrap().visual_state = VisualState::Active;
             } else {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Hover),
-                );
+                state.unwrap().visual_state = VisualState::Hover;
             }
+            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state));
         }
         Message::MouseLeave => {
-            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Disabled),
-                );
-                return 0;
-            }
             ugui.invalidate_rect(rect);
 
-            if visual_state.is_some_and(|x| x == VisualState::Active) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Hover),
-                );
+            if state.unwrap().visual_state == VisualState::Active {
+                state.unwrap().visual_state = VisualState::Hover;
             } else {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Normal),
-                );
+                state.unwrap().visual_state = VisualState::Normal;
             }
+            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state));
         }
         Message::Paint => {
             let back_rect = ugui.get_window_rect(hwnd);
@@ -171,13 +120,13 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
 
             ugui.paint_quad(
                 back_rect,
-                colors[visual_state.as_ref().unwrap()].0,
+                colors[state.unwrap().visual_state].0,
                 Color::BLACK,
                 0.0,
             );
             ugui.paint_quad(
                 thumb_rect,
-                colors[visual_state.as_ref().unwrap()].1,
+                colors[state.unwrap().visual_state].1,
                 Color::BLACK,
                 0.0,
             );
