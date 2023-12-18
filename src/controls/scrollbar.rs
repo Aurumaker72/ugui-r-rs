@@ -58,35 +58,35 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             ugui.set_udata(hwnd, Some(Box::new(state)));
         }
         Message::LmbDown => {
-            state.unwrap().visual_state = VisualState::Active;
+            state.as_mut().unwrap().visual_state = VisualState::Active;
             ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             ugui.capture_mouse(hwnd);
             ugui.invalidate_rect(rect);
         }
         Message::LmbUp => {
-            if state.unwrap().visual_state == VisualState::Hover {
-                state.unwrap().visual_state = VisualState::Normal;
+            if state.as_mut().unwrap().visual_state == VisualState::Hover {
+                state.as_mut().unwrap().visual_state = VisualState::Normal;
             } else {
-                state.unwrap().visual_state = VisualState::Hover;
+                state.as_mut().unwrap().visual_state = VisualState::Hover;
             }
             ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             ugui.uncapture_mouse(hwnd);
             ugui.invalidate_rect(rect);
         }
         Message::MouseEnter => {
-            if state.unwrap().visual_state == VisualState::Hover {
-                state.unwrap().visual_state = VisualState::Active;
+            if state.as_mut().unwrap().visual_state == VisualState::Hover {
+                state.as_mut().unwrap().visual_state = VisualState::Active;
             } else {
-                state.unwrap().visual_state = VisualState::Hover;
+                state.as_mut().unwrap().visual_state = VisualState::Hover;
             }
             ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
         }
         Message::MouseLeave => {
-            if state.unwrap().visual_state == VisualState::Active {
-                state.unwrap().visual_state = VisualState::Hover;
+            if state.as_mut().unwrap().visual_state == VisualState::Active {
+                state.as_mut().unwrap().visual_state = VisualState::Hover;
             } else {
-                state.unwrap().visual_state = VisualState::Normal;
+                state.as_mut().unwrap().visual_state = VisualState::Normal;
             }
             ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);

@@ -51,12 +51,12 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             ugui.set_udata(hwnd, Some(Box::new(state)));
         }
         Message::Focus => {
-            state.unwrap().visual_state = VisualState::Active;
+            state.as_mut().unwrap().visual_state = VisualState::Active;
             ugui.invalidate_rect(rect);
             ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
         }
         Message::Unfocus => {
-            state.unwrap().visual_state = VisualState::Normal;
+            state.as_mut().unwrap().visual_state = VisualState::Normal;
             ugui.invalidate_rect(rect);
             ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
         }
@@ -64,15 +64,15 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             // TODO: Caret control
         }
         Message::MouseEnter => {
-            if state.unwrap().visual_state == VisualState::Normal {
-                state.unwrap().visual_state = VisualState::Hover;
+            if state.as_mut().unwrap().visual_state == VisualState::Normal {
+                state.as_mut().unwrap().visual_state = VisualState::Hover;
                 ugui.invalidate_rect(rect);
                 ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             }
         }
         Message::MouseLeave => {
-            if state.unwrap().visual_state == VisualState::Hover {
-                state.unwrap().visual_state = VisualState::Normal;
+            if state.as_mut().unwrap().visual_state == VisualState::Hover {
+                state.as_mut().unwrap().visual_state = VisualState::Normal;
                 ugui.invalidate_rect(rect);
                 ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             }
