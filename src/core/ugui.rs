@@ -343,7 +343,7 @@ impl Ugui {
         rect: Rect,
         back_color: Color,
         border_color: Color,
-        _border_size: f32,
+        border_size: f32,
     ) {
         self.canvas.as_mut().unwrap().set_draw_color(border_color);
         self.canvas
@@ -355,7 +355,7 @@ impl Ugui {
         self.canvas
             .as_mut()
             .unwrap()
-            .fill_rect(rect.inflate(-1.0).to_sdl())
+            .fill_rect(rect.inflate(-border_size).to_sdl())
             .unwrap();
     }
 
