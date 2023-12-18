@@ -298,12 +298,7 @@ impl Ugui {
     ///
     /// returns: Option<Box<dyn Any>> The user data associated with the window
     pub fn get_udata(&self, hwnd: HWND) -> Option<Box<dyn Value>> {
-        let window = window_from_hwnd(&self.windows, hwnd);
-        if window.user_data.is_none() {
-            return None;
-        }
-        let data = window.user_data.clone().unwrap();
-        Some(dyn_clone::clone_box(&data))
+        window_from_hwnd(&self.windows, hwnd).user_data.clone()
     }
 
     /// Sets a window's user data
