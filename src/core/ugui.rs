@@ -95,7 +95,7 @@ impl Ugui {
             rect,
             parent,
             procedure,
-            user_data: Box::new(None::<usize>),
+            user_data: None,
         });
 
         self.message_queue.push((hwnd, Message::StylesChanged));
@@ -296,9 +296,14 @@ impl Ugui {
     ///
     /// * `hwnd`: The window's handle
     ///
-    /// returns: Box<dyn Any> The user data associated with the window
-    pub fn get_udata(&self, hwnd: HWND) -> Box<dyn Value> {
-        dyn_clone::clone_box(&window_from_hwnd(&self.windows, hwnd).user_data)
+    /// returns: Option<Box<dyn Any>> The user data associated with the window
+    pub fn get_udata(&self, hwnd: HWND) -> Option<Box<dyn Value>> {
+        let window = window_from_hwnd(&self.windows, hwnd);
+        if window.user_data.is_none() {
+            return None;
+        }
+        let data = window.user_data.clone().unwrap();
+        Some(dyn_clone::clone_box(&data))
     }
 
     /// Sets a window's user data
@@ -308,7 +313,7 @@ impl Ugui {
     /// * `hwnd`: The window's handle
     /// * `value`: The desired user data
     ///
-    pub fn set_udata(&mut self, hwnd: HWND, value: Box<dyn Value>) {
+    pub fn set_udata(&mut self, hwnd: HWND, value: Option<Box<dyn Value>>) {
         window_from_hwnd_mut(&mut self.windows, hwnd).user_data = value;
     }
 

@@ -20,5 +20,5 @@ pub(crate) struct Window {
     pub parent: Option<HWND>,
     pub procedure: WNDPROC,
     /// Custom data which can be retrieved and modified by user
-    pub user_data: Box<dyn dynval::Value>,
+    pub user_data: Option<Box<dyn dynval::Value>>,
 }
