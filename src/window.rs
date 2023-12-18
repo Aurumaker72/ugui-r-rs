@@ -19,5 +19,6 @@ pub(crate) struct Window {
     pub rect: Rect,
     pub parent: Option<HWND>,
     pub procedure: WNDPROC,
-    pub user_data: HashMap<String, Box<dyn dynval::Value>>,
+    /// Custom data which can be retrieved and modified by user
+    pub user_data: Box<dyn dynval::Value>,
 }

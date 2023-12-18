@@ -95,7 +95,7 @@ impl Ugui {
             rect,
             parent,
             procedure,
-            user_data: Default::default(),
+            user_data: Box::new(None::<usize>),
         });
 
         self.message_queue.push((hwnd, Message::StylesChanged));
@@ -295,14 +295,10 @@ impl Ugui {
     /// # Arguments
     ///
     /// * `hwnd`: The window's handle
-    /// * `key`: The user data entry's key
     ///
-    /// returns: Option<Box<dyn Any>> The user data associated with the window
-    pub fn get_udata(&self, hwnd: HWND, key: &str) -> Option<Box<dyn Value>> {
-        if let Some(value) = window_from_hwnd(&self.windows, hwnd).user_data.get(key) {
-            return Some(dyn_clone::clone_box(&**value));
-        }
-        None
+    /// returns: Box<dyn Any> The user data associated with the window
+    pub fn get_udata(&self, hwnd: HWND) -> Box<dyn Value> {
+        dyn_clone::clone_box(&window_from_hwnd(&self.windows, hwnd).user_data)
     }
 
     /// Sets a window's user data
@@ -310,13 +306,10 @@ impl Ugui {
     /// # Arguments
     ///
     /// * `hwnd`: The window's handle
-    /// * `key`: The key to place the data into
     /// * `value`: The desired user data
     ///
-    pub fn set_udata(&mut self, hwnd: HWND, key: &str, value: Box<dyn Value>) {
-        window_from_hwnd_mut(&mut self.windows, hwnd)
-            .user_data
-            .insert(key.to_string(), value);
+    pub fn set_udata(&mut self, hwnd: HWND, value: Box<dyn Value>) {
+        window_from_hwnd_mut(&mut self.windows, hwnd).user_data = value;
     }
 
     /// Captures the mouse, receiving all of its events and preventing propagation to other controls
