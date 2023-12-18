@@ -59,41 +59,38 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state));
         }
         Message::LmbDown => {
-            ugui.invalidate_rect(rect);
             state.unwrap().visual_state = VisualState::Active;
-            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state));
+            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state.unwrap()));
             ugui.capture_mouse(hwnd);
+            ugui.invalidate_rect(rect);
         }
         Message::LmbUp => {
-            ugui.invalidate_rect(rect);
-
             if state.unwrap().visual_state == VisualState::Hover {
                 state.unwrap().visual_state = VisualState::Normal;
             } else {
                 state.unwrap().visual_state = VisualState::Hover;
             }
-            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state));
+            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state.unwrap()));
             ugui.uncapture_mouse(hwnd);
+            ugui.invalidate_rect(rect);
         }
         Message::MouseEnter => {
-            ugui.invalidate_rect(rect);
-
             if state.unwrap().visual_state == VisualState::Hover {
                 state.unwrap().visual_state = VisualState::Active;
             } else {
                 state.unwrap().visual_state = VisualState::Hover;
             }
-            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state));
+            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state.unwrap()));
+            ugui.invalidate_rect(rect);
         }
         Message::MouseLeave => {
-            ugui.invalidate_rect(rect);
-
             if state.unwrap().visual_state == VisualState::Active {
                 state.unwrap().visual_state = VisualState::Hover;
             } else {
                 state.unwrap().visual_state = VisualState::Normal;
             }
-            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state));
+            ugui.set_udata(hwnd, SCROLLBAR_STATE_KEY, Box::new(state.unwrap()));
+            ugui.invalidate_rect(rect);
         }
         Message::Paint => {
             let back_rect = ugui.get_window_rect(hwnd);
@@ -120,13 +117,13 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
 
             ugui.paint_quad(
                 back_rect,
-                colors[state.unwrap().visual_state].0,
+                colors[&state.unwrap().visual_state].0,
                 Color::BLACK,
                 0.0,
             );
             ugui.paint_quad(
                 thumb_rect,
-                colors[state.unwrap().visual_state].1,
+                colors[&state.unwrap().visual_state].1,
                 Color::BLACK,
                 0.0,
             );

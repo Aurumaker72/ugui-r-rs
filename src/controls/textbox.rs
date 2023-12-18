@@ -10,10 +10,18 @@ use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 use std::ops::Deref;
 
+#[derive(Copy, Clone, Default, Debug)]
+struct TextboxState {
+    /// The current visual state
+    visual_state: VisualState,
+}
+
+pub const TEXTBOX_STATE_KEY: &str = "state";
 pub const TEXTBOX_CHANGED: u64 = 51;
 pub fn textbox_style() -> FlagSet<Styles> {
     Styles::Visible | Styles::Enabled | Styles::Focusable
 }
+
 /// The message procedure implementation for a textbox
 ///
 /// # Arguments
@@ -25,99 +33,49 @@ pub fn textbox_style() -> FlagSet<Styles> {
 /// returns: u64 The message response
 pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     let rect = ugui.get_window_rect(hwnd);
-    let mut visual_state: Option<VisualState> = None;
-    if let Some(data) = ugui.get_udata(hwnd, "visual_state") {
-        visual_state = Some(*(data.downcast::<VisualState>().unwrap()));
+    let mut state: Option<TextboxState> = None;
+    if let Some(data) = ugui.get_udata(hwnd, TEXTBOX_STATE_KEY) {
+        state = Some(*(data.downcast::<TextboxState>().unwrap()));
     }
 
     match message {
         Message::StylesChanged => {
             let style = ugui.get_styles(hwnd);
+            let mut state = TextboxState::default();
 
             if !style.contains(Styles::Enabled) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Disabled),
-                );
+                state.visual_state = VisualState::Disabled;
             } else {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Normal),
-                );
+                state.visual_state = VisualState::Normal;
             }
+
+            ugui.set_udata(hwnd, TEXTBOX_STATE_KEY, Box::new(state));
         }
         Message::Focus => {
-            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Disabled),
-                );
-                return 0;
-            }
+            state.unwrap().visual_state = VisualState::Active;
             ugui.invalidate_rect(rect);
-            ugui.set_udata(
-                hwnd,
-                "visual_state".to_string(),
-                Box::new(VisualState::Active),
-            );
+            ugui.set_udata(hwnd, TEXTBOX_STATE_KEY, Box::new(state.unwrap()));
         }
         Message::Unfocus => {
-            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Disabled),
-                );
-                return 0;
-            }
+            state.unwrap().visual_state = VisualState::Normal;
             ugui.invalidate_rect(rect);
-            ugui.set_udata(
-                hwnd,
-                "visual_state".to_string(),
-                Box::new(VisualState::Normal),
-            );
+            ugui.set_udata(hwnd, TEXTBOX_STATE_KEY, Box::new(state.unwrap()));
         }
         Message::MouseMove => {
             // TODO: Caret control
         }
         Message::MouseEnter => {
-            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Disabled),
-                );
-                return 0;
-            }
-            ugui.invalidate_rect(rect);
-            if visual_state.is_some_and(|x| x == VisualState::Normal) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Hover),
-                );
+            if state.unwrap().visual_state == VisualState::Normal {
+                state.unwrap().visual_state = VisualState::Hover;
+                ugui.invalidate_rect(rect);
+                ugui.set_udata(hwnd, TEXTBOX_STATE_KEY, Box::new(state.unwrap()));
             }
         }
         Message::MouseLeave => {
-            if !ugui.get_styles(hwnd).contains(Styles::Enabled) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Disabled),
-                );
-                return 0;
-            }
-            ugui.invalidate_rect(rect);
-
-            if visual_state.is_some_and(|x| x == VisualState::Hover) {
-                ugui.set_udata(
-                    hwnd,
-                    "visual_state".to_string(),
-                    Box::new(VisualState::Normal),
-                );
+            if state.unwrap().visual_state == VisualState::Hover {
+                state.unwrap().visual_state = VisualState::Normal;
+                ugui.invalidate_rect(rect);
+                ugui.set_udata(hwnd, TEXTBOX_STATE_KEY, Box::new(state.unwrap()));
             }
         }
         Message::LmbDown => {
@@ -153,8 +111,8 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
 
             ugui.paint_quad(
                 rect,
-                colors[visual_state.as_ref().unwrap()].0,
-                colors[visual_state.as_ref().unwrap()].1,
+                colors[&state.unwrap().visual_state].0,
+                colors[&state.unwrap().visual_state].1,
                 1.0,
             );
         }
