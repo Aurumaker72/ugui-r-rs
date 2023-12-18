@@ -14,8 +14,6 @@ struct ButtonState {
     visual_state: VisualState,
 }
 
-pub const BUTTON_STATE_KEY: &str = "state";
-
 pub fn button_style() -> FlagSet<Styles> {
     Styles::Visible | Styles::Enabled | Styles::Focusable
 }
@@ -33,7 +31,7 @@ pub const BUTTON_CLICK: u64 = 50;
 pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     let rect = ugui.get_window_rect(hwnd);
     let mut state: Option<ButtonState> = None;
-    if let Some(data) = ugui.get_udata(hwnd, BUTTON_STATE_KEY) {
+    if let Some(data) = ugui.get_udata(hwnd) {
         state = Some(*(data.downcast::<ButtonState>().unwrap()));
     }
 
@@ -48,12 +46,11 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 state.visual_state = VisualState::Normal;
             }
 
-            ugui.set_udata(hwnd, BUTTON_STATE_KEY, Box::new(state));
+            ugui.set_udata(hwnd, Some(Box::new(state)));
         }
         Message::LmbDown => {
             state.unwrap().visual_state = VisualState::Active;
-            ugui.set_udata(hwnd, BUTTON_STATE_KEY, Box::new(state.unwrap()));
-
+            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
             ugui.capture_mouse(hwnd);
             ugui.send_message(ugui.root_hwnd(), Message::User(hwnd, BUTTON_CLICK));
@@ -64,8 +61,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 state.unwrap().visual_state = VisualState::Hover;
             }
-            ugui.set_udata(hwnd, BUTTON_STATE_KEY, Box::new(state.unwrap()));
-
+            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
             ugui.uncapture_mouse(hwnd);
         }
@@ -75,9 +71,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 state.unwrap().visual_state = VisualState::Hover;
             }
-
-            ugui.set_udata(hwnd, BUTTON_STATE_KEY, Box::new(state.unwrap()));
-
+            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
         }
         Message::MouseLeave => {
@@ -86,8 +80,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 state.unwrap().visual_state = VisualState::Normal;
             }
-            ugui.set_udata(hwnd, BUTTON_STATE_KEY, Box::new(state.unwrap()));
-
+            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
         }
         Message::Paint => {

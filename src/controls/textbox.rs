@@ -16,7 +16,6 @@ struct TextboxState {
     visual_state: VisualState,
 }
 
-pub const TEXTBOX_STATE_KEY: &str = "state";
 pub const TEXTBOX_CHANGED: u64 = 51;
 pub fn textbox_style() -> FlagSet<Styles> {
     Styles::Visible | Styles::Enabled | Styles::Focusable
@@ -34,7 +33,7 @@ pub fn textbox_style() -> FlagSet<Styles> {
 pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     let rect = ugui.get_window_rect(hwnd);
     let mut state: Option<TextboxState> = None;
-    if let Some(data) = ugui.get_udata(hwnd, TEXTBOX_STATE_KEY) {
+    if let Some(data) = ugui.get_udata(hwnd) {
         state = Some(*(data.downcast::<TextboxState>().unwrap()));
     }
 
@@ -49,17 +48,17 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 state.visual_state = VisualState::Normal;
             }
 
-            ugui.set_udata(hwnd, TEXTBOX_STATE_KEY, Box::new(state));
+            ugui.set_udata(hwnd, Some(Box::new(state)));
         }
         Message::Focus => {
             state.unwrap().visual_state = VisualState::Active;
             ugui.invalidate_rect(rect);
-            ugui.set_udata(hwnd, TEXTBOX_STATE_KEY, Box::new(state.unwrap()));
+            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
         }
         Message::Unfocus => {
             state.unwrap().visual_state = VisualState::Normal;
             ugui.invalidate_rect(rect);
-            ugui.set_udata(hwnd, TEXTBOX_STATE_KEY, Box::new(state.unwrap()));
+            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
         }
         Message::MouseMove => {
             // TODO: Caret control
@@ -68,14 +67,14 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             if state.unwrap().visual_state == VisualState::Normal {
                 state.unwrap().visual_state = VisualState::Hover;
                 ugui.invalidate_rect(rect);
-                ugui.set_udata(hwnd, TEXTBOX_STATE_KEY, Box::new(state.unwrap()));
+                ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             }
         }
         Message::MouseLeave => {
             if state.unwrap().visual_state == VisualState::Hover {
                 state.unwrap().visual_state = VisualState::Normal;
                 ugui.invalidate_rect(rect);
-                ugui.set_udata(hwnd, TEXTBOX_STATE_KEY, Box::new(state.unwrap()));
+                ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             }
         }
         Message::LmbDown => {
