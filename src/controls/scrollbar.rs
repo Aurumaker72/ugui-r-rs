@@ -5,17 +5,18 @@ use crate::core::styles::{hex_color, Styles};
 use crate::core::ugui::Ugui;
 use crate::HWND;
 use flagset::FlagSet;
-use num_traits::{FromPrimitive, ToPrimitive};
 
+
+use crate::core::geo::Rect;
 use sdl2::pixels::Color;
 use std::collections::HashMap;
-use std::ops::Deref;
-use std::string::ToString;
+
+
 
 #[derive(Copy, Clone, Default, Debug)]
 struct ScrollbarState {
-    /// The thumb's size in pixels
-    size: i32,
+    /// The thumb's size in relation to the scrollbar's height
+    size: f32,
     /// The scroll percentage
     value: f32,
     /// The current visual state
@@ -25,7 +26,21 @@ struct ScrollbarState {
 pub fn scrollbar_style() -> FlagSet<Styles> {
     Styles::Visible | Styles::Enabled | Styles::Focusable
 }
+pub fn scrollbar_set(ugui: &mut Ugui, hwnd: HWND, size: f32, value: f32) {
 
+    if let Some(data) = ugui.get_udata(hwnd) {
+        let state = *(data.downcast::<ScrollbarState>().unwrap());
+        ugui.set_udata(
+            hwnd,
+            Some(Box::new(ScrollbarState {
+                size,
+                value,
+                ..state
+            })),
+        );
+        ugui.invalidate_hwnd(hwnd);
+    }
+}
 pub const SCROLLBAR_CHANGED: u64 = 53;
 
 /// The message procedure implementation for a scrollbar
@@ -93,7 +108,12 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
         }
         Message::Paint => {
             let back_rect = ugui.get_window_rect(hwnd);
-            let thumb_rect = ugui.get_window_rect(hwnd);
+            let thumb_rect = Rect {
+                x: back_rect.x,
+                y: back_rect.y + (back_rect.h * state.unwrap().value),
+                w: back_rect.w,
+                h: back_rect.h * state.unwrap().size,
+            };
 
             let colors = HashMap::from([
                 (
@@ -117,13 +137,13 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             ugui.paint_quad(
                 back_rect,
                 colors[&state.unwrap().visual_state].0,
-                Color::BLACK,
+                Color::RED,
                 0.0,
             );
             ugui.paint_quad(
                 thumb_rect,
                 colors[&state.unwrap().visual_state].1,
-                Color::BLACK,
+                Color::RED,
                 0.0,
             );
         }
