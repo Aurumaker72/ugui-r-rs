@@ -9,7 +9,7 @@ use crate::CENTER_SCREEN;
 use crate::HWND;
 use crate::WNDPROC;
 use flagset::FlagSet;
-use std::any::Any;
+
 
 use sdl2::event::{Event, WindowEvent};
 
@@ -98,8 +98,11 @@ impl Ugui {
             user_data: None,
         });
 
-        self.message_queue.push((hwnd, Message::StylesChanged));
-        self.message_queue.push((hwnd, Message::Create));
+        // NOTE: We need to send and process these NOW, as this method could be called from inside a WndProc
+        // In that case, we would be performing the repaint immediately after processing the messages
+        // This leaves the control in an invalid state, since it was painted without being created first
+        self.send_message(hwnd, Message::StylesChanged);
+        self.send_message(hwnd, Message::Create);
         self.invalidate_rect(rect);
 
         Some(hwnd)
