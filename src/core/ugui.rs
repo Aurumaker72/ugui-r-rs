@@ -10,10 +10,10 @@ use crate::HWND;
 use crate::WNDPROC;
 use flagset::FlagSet;
 
-
 use sdl2::event::{Event, WindowEvent};
 
 use crate::core::dynval::Value;
+use crate::core::mouse::MouseState;
 use crate::core::util::*;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
@@ -33,6 +33,8 @@ pub struct Ugui {
     last_text_input: String,
     /// Regions relative to top-level window which need to be repainted
     dirty_rects: Vec<Rect>,
+    /// Wrapper for mouse state, can be retrieved by user
+    mouse_state: MouseState,
 }
 
 impl Ugui {
@@ -106,6 +108,11 @@ impl Ugui {
         self.invalidate_rect(rect);
 
         Some(hwnd)
+    }
+
+    /// Gets the current mouse state
+    pub fn mouse_state(&self) -> MouseState {
+        self.mouse_state
     }
 
     /// Gets the focused window
@@ -500,23 +507,38 @@ impl Ugui {
         self.canvas = Some(sdl_window.into_canvas().present_vsync().build().unwrap());
         let mut event_pump = sdl_context.event_pump().unwrap();
 
-        let mut lmb_down_point = Point::default();
         let mut last_mouse_position = Point::default();
 
         'running: loop {
-            let mouse_point =
+            self.mouse_state.pos =
                 Point::new_i(event_pump.mouse_state().x(), event_pump.mouse_state().y());
 
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. } => break 'running,
                     Event::MouseButtonDown { mouse_btn, .. } => {
+                        match mouse_btn {
+                            MouseButton::Left => {
+                                self.mouse_state.lmb = true;
+                            }
+                            MouseButton::Middle => {
+                                self.mouse_state.mmb = true;
+                            }
+                            MouseButton::Right => {
+                                self.mouse_state.rmb = true;
+                            }
+                            _ => {}
+                        }
+
                         if mouse_btn != MouseButton::Left {
                             break;
                         }
-                        lmb_down_point = mouse_point;
 
-                        if let Some(control) = window_at_point(&self.windows, lmb_down_point) {
+                        self.mouse_state.lmb_down_pos = self.mouse_state.pos;
+
+                        if let Some(control) =
+                            window_at_point(&self.windows, self.mouse_state.lmb_down_pos)
+                        {
                             // If focused HWNDs differ, we unfocus the old one
                             if self.focused_hwnd.is_some_and(|x| x != control.hwnd) {
                                 if window_from_hwnd(&self.windows, self.focused_hwnd.unwrap())
@@ -540,16 +562,31 @@ impl Ugui {
                         }
                     }
                     Event::MouseButtonUp { mouse_btn, .. } => {
+                        match mouse_btn {
+                            MouseButton::Left => {
+                                self.mouse_state.lmb = true;
+                            }
+                            MouseButton::Middle => {
+                                self.mouse_state.mmb = true;
+                            }
+                            MouseButton::Right => {
+                                self.mouse_state.rmb = true;
+                            }
+                            _ => {}
+                        }
+
                         if mouse_btn != MouseButton::Left {
                             break;
                         }
                         // Following assumption is made: We can't have up without down happening prior to it.
                         // The control at the mouse down position thus needs to know if the mouse was released afterwards, either inside or outside of its client area.
-                        if let Some(control) = window_at_point(&self.windows, lmb_down_point) {
+                        if let Some(control) =
+                            window_at_point(&self.windows, self.mouse_state.lmb_down_pos)
+                        {
                             self.message_queue.push((control.hwnd, Message::LmbUp));
                         }
                     }
-                    Event::MouseMotion { .. } => {
+                    Event::MouseMotion { x, y, .. } => {
                         // If we have a captured control, it gets special treatment
                         if let Some(captured_hwnd) = self.captured_hwnd {
                             let captured_window = window_from_hwnd(&self.windows, captured_hwnd);
@@ -557,20 +594,22 @@ impl Ugui {
                             self.message_queue.push((captured_hwnd, Message::MouseMove));
 
                             // 2. Send MouseEnter/Leave based solely off of its own client rect
-                            if mouse_point.inside(captured_window.rect)
+                            if self.mouse_state.pos.inside(captured_window.rect)
                                 && !last_mouse_position.inside(captured_window.rect)
                             {
                                 self.message_queue
                                     .push((captured_hwnd, Message::MouseEnter));
                             }
-                            if !mouse_point.inside(captured_window.rect)
+                            if !self.mouse_state.pos.inside(captured_window.rect)
                                 && last_mouse_position.inside(captured_window.rect)
                             {
                                 self.message_queue
                                     .push((captured_hwnd, Message::MouseLeave));
                             }
                         } else {
-                            if let Some(control) = window_at_point(&self.windows, mouse_point) {
+                            if let Some(control) =
+                                window_at_point(&self.windows, self.mouse_state.pos)
+                            {
                                 // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
                                 self.message_queue.push((control.hwnd, Message::MouseMove));
 
@@ -586,7 +625,7 @@ impl Ugui {
                                 }
                             }
                         }
-                        last_mouse_position = mouse_point;
+                        last_mouse_position = self.mouse_state.pos;
                     }
                     Event::Window { win_event, .. } => match win_event {
                         WindowEvent::SizeChanged(w, h) => {
