@@ -1,5 +1,3 @@
-extern crate sdl2;
-
 use crate::core::messages::Message;
 use crate::window::Window;
 use crate::CENTER_SCREEN;
@@ -7,25 +5,18 @@ use crate::HWND;
 use crate::WNDPROC;
 use flagset::FlagSet;
 
-use sdl2::event::{Event, WindowEvent};
-
 use crate::core::dynval::Value;
 use crate::core::util::*;
 use crate::gfx::alignment::Alignment;
+use crate::gfx::color::Color;
 use crate::gfx::point::Point;
 use crate::gfx::rect::Rect;
 use crate::gfx::styles::Styles;
 use crate::input::mouse::MouseState;
-use sdl2::mouse::MouseButton;
-use sdl2::pixels::Color;
-use sdl2::render::WindowCanvas;
-use sdl2::ttf::Font;
-
 /// An application, roughly equivalent to a top-level window with a message loop and many child windows.
 #[derive(Default)]
 pub struct Ugui {
     windows: Vec<Window>,
-    canvas: Option<WindowCanvas>,
     message_queue: Vec<(HWND, Message)>,
     captured_hwnd: Option<HWND>,
     focused_hwnd: Option<HWND>,
@@ -41,14 +32,13 @@ pub struct Ugui {
 impl Ugui {
     /// Paints all controls inside a rectangle
     fn paint_rect(&mut self, rect: Rect) {
-        let prev_clip = self.canvas.as_mut().unwrap().clip_rect().unwrap_or(
-            window_from_hwnd(&self.windows, self.root_hwnd())
-                .rect
-                .to_sdl(),
-        );
+        // let prev_clip = self.canvas.as_mut().unwrap().clip_rect().unwrap_or(
+        //     window_from_hwnd(&self.windows, self.root_hwnd())
+        //         .rect,
+        // );
 
         // 1. Set clip region to the control bounds
-        self.canvas.as_mut().unwrap().set_clip_rect(rect.to_sdl());
+        // self.canvas.as_mut().unwrap().set_clip_rect(rect.to_sdl());
 
         // 2. Repaint all controls inside the affected rect, skipping invisible ones
         let affected_windows = get_window_handles_inside_rect(&self.windows, rect);
@@ -62,7 +52,7 @@ impl Ugui {
             (window.procedure)(self, hwnd, Message::Paint);
         }
 
-        self.canvas.as_mut().unwrap().set_clip_rect(prev_clip);
+        // self.canvas.as_mut().unwrap().set_clip_rect(prev_clip);
     }
 }
 
@@ -356,18 +346,18 @@ impl Ugui {
         border_color: Color,
         border_size: f32,
     ) {
-        self.canvas.as_mut().unwrap().set_draw_color(border_color);
-        self.canvas
-            .as_mut()
-            .unwrap()
-            .fill_rect(rect.to_sdl())
-            .unwrap();
-        self.canvas.as_mut().unwrap().set_draw_color(back_color);
-        self.canvas
-            .as_mut()
-            .unwrap()
-            .fill_rect(rect.inflate(-border_size).to_sdl())
-            .unwrap();
+        // self.canvas.as_mut().unwrap().set_draw_color(border_color);
+        // self.canvas
+        //     .as_mut()
+        //     .unwrap()
+        //     .fill_rect(rect.to_sdl())
+        //     .unwrap();
+        // self.canvas.as_mut().unwrap().set_draw_color(back_color);
+        // self.canvas
+        //     .as_mut()
+        //     .unwrap()
+        //     .fill_rect(rect.inflate(-border_size).to_sdl())
+        //     .unwrap();
     }
 
     /// Sets a window's caption
@@ -383,11 +373,11 @@ impl Ugui {
 
         // The top-level window gets special treatment: its caption is the title
         if window.parent == None {
-            self.canvas
-                .as_mut()
-                .unwrap()
-                .window_mut()
-                .set_title(window.caption.as_str());
+            // self.canvas
+            //     .as_mut()
+            //     .unwrap()
+            //     .window_mut()
+            //     .set_title(window.caption.as_str());
         } else {
             self.dirty_rects.push(window.rect);
         }
@@ -406,7 +396,6 @@ impl Ugui {
     /// * `line_height`: The space between line breaks
     pub fn paint_text<'a>(
         &mut self,
-        font: Font<'a, 'static>,
         text: &str,
         rect: Rect,
         color: Color,
@@ -414,64 +403,6 @@ impl Ugui {
         vertical_alignment: Alignment,
         line_height: f32,
     ) {
-        let texture_creator = self.canvas.as_mut().unwrap().texture_creator();
-
-        let lines = text.split("\n").collect::<Vec<&str>>();
-
-        for i in 0..lines.len() {
-            let mut line = lines[i].replace("\n", "");
-
-            // SDL freaks out when performing operations on 0-width strings
-            if line.len() == 0 {
-                line = " ".to_string();
-            }
-
-            let surface = font
-                .render(&line)
-                .blended(color)
-                .map_err(|e| e.to_string())
-                .unwrap();
-
-            let texture = texture_creator
-                .create_texture_from_surface(&surface)
-                .map_err(|e| e.to_string())
-                .unwrap();
-
-            let size = font.size_of(&line).unwrap();
-            let text_size = Point {
-                x: size.0 as f32,
-                y: size.1 as f32,
-            };
-            let mut line_rect = Rect {
-                x: rect.x,
-                y: rect.y + (i as f32 * line_height),
-                w: rect.w,
-                h: line_height,
-            };
-            if lines.len() == 1 {
-                // Single-line string: line rect is just the regular rect
-                line_rect = rect;
-            }
-            if horizontal_alignment == Alignment::Center {
-                line_rect.x += line_rect.w / 2.0 - text_size.x / 2.0;
-            }
-            if horizontal_alignment == Alignment::End {
-                line_rect.x += line_rect.w - text_size.x;
-            }
-            if vertical_alignment == Alignment::Center {
-                line_rect.y += line_rect.h / 2.0 - text_size.y / 2.0;
-            }
-            if vertical_alignment == Alignment::End {
-                line_rect.y += line_rect.h - text_size.y;
-            }
-            line_rect.w = text_size.x;
-            line_rect.h = text_size.y;
-            self.canvas
-                .as_mut()
-                .unwrap()
-                .copy(&texture, None, Some(line_rect.to_sdl()))
-                .unwrap();
-        }
     }
 
     /// Shows a window, trapping the caller until the window closes
@@ -480,216 +411,216 @@ impl Ugui {
     ///
     /// * `hwnd`: The window's handle
     pub fn show_window(&mut self, hwnd: HWND) {
-        let sdl_context = sdl2::init().unwrap();
-        let video_subsystem = sdl_context.video().unwrap();
-
-        let _ttf_context = sdl2::ttf::init().unwrap();
-
-        let top_level_window = window_from_hwnd(&self.windows, hwnd);
-        let mut window_builder = &mut video_subsystem.window(
-            &top_level_window.caption,
-            top_level_window.rect.w as u32,
-            top_level_window.rect.h as u32,
-        );
-
-        window_builder
-            .position(
-                top_level_window.rect.x as i32,
-                top_level_window.rect.y as i32,
-            )
-            .opengl()
-            .resizable();
-
-        if top_level_window.rect.x == CENTER_SCREEN && top_level_window.rect.y == CENTER_SCREEN {
-            window_builder = window_builder.position_centered();
-        }
-
-        let sdl_window = window_builder.build().unwrap();
-        self.canvas = Some(sdl_window.into_canvas().present_vsync().build().unwrap());
-        let mut event_pump = sdl_context.event_pump().unwrap();
-
-        let mut last_mouse_position = Point::default();
-
-        'running: loop {
-            self.mouse_state.pos =
-                Point::new_i(event_pump.mouse_state().x(), event_pump.mouse_state().y());
-
-            for event in event_pump.poll_iter() {
-                match event {
-                    Event::Quit { .. } => break 'running,
-                    Event::MouseButtonDown { mouse_btn, .. } => {
-                        match mouse_btn {
-                            MouseButton::Left => {
-                                self.mouse_state.lmb = true;
-                            }
-                            MouseButton::Middle => {
-                                self.mouse_state.mmb = true;
-                            }
-                            MouseButton::Right => {
-                                self.mouse_state.rmb = true;
-                            }
-                            _ => {}
-                        }
-
-                        if mouse_btn != MouseButton::Left {
-                            break;
-                        }
-
-                        self.mouse_state.lmb_down_pos = self.mouse_state.pos;
-
-                        if let Some(control) =
-                            window_at_point(&self.windows, self.mouse_state.lmb_down_pos)
-                        {
-                            // If focused HWNDs differ, we unfocus the old one
-                            if self.focused_hwnd.is_some_and(|x| x != control.hwnd) {
-                                if window_from_hwnd(&self.windows, self.focused_hwnd.unwrap())
-                                    .styles
-                                    .contains(Styles::Focusable)
-                                {
-                                    self.message_queue
-                                        .push((self.focused_hwnd.unwrap(), Message::Unfocus));
-                                }
-                            }
-
-                            self.focused_hwnd = Some(control.hwnd);
-                            self.message_queue.push((control.hwnd, Message::LmbDown));
-
-                            if window_from_hwnd(&self.windows, control.hwnd)
-                                .styles
-                                .contains(Styles::Focusable)
-                            {
-                                self.message_queue.push((control.hwnd, Message::Focus));
-                            }
-                        }
-                    }
-                    Event::MouseButtonUp { mouse_btn, .. } => {
-                        match mouse_btn {
-                            MouseButton::Left => {
-                                self.mouse_state.lmb = true;
-                            }
-                            MouseButton::Middle => {
-                                self.mouse_state.mmb = true;
-                            }
-                            MouseButton::Right => {
-                                self.mouse_state.rmb = true;
-                            }
-                            _ => {}
-                        }
-
-                        if mouse_btn != MouseButton::Left {
-                            break;
-                        }
-                        // Following assumption is made: We can't have up without down happening prior to it.
-                        // The control at the mouse down position thus needs to know if the mouse was released afterwards, either inside or outside of its client area.
-                        if let Some(control) =
-                            window_at_point(&self.windows, self.mouse_state.lmb_down_pos)
-                        {
-                            self.message_queue.push((control.hwnd, Message::LmbUp));
-                        }
-                    }
-                    Event::MouseMotion { x, y, .. } => {
-                        // If we have a captured control, it gets special treatment
-                        if let Some(captured_hwnd) = self.captured_hwnd {
-                            let captured_window = window_from_hwnd(&self.windows, captured_hwnd);
-                            // 1. Send MouseMove unconditionally
-                            self.message_queue.push((captured_hwnd, Message::MouseMove));
-
-                            // 2. Send MouseEnter/Leave based solely off of its own client rect
-                            if self.mouse_state.pos.inside(captured_window.rect)
-                                && !last_mouse_position.inside(captured_window.rect)
-                            {
-                                self.message_queue
-                                    .push((captured_hwnd, Message::MouseEnter));
-                            }
-                            if !self.mouse_state.pos.inside(captured_window.rect)
-                                && last_mouse_position.inside(captured_window.rect)
-                            {
-                                self.message_queue
-                                    .push((captured_hwnd, Message::MouseLeave));
-                            }
-                        } else {
-                            if let Some(control) =
-                                window_at_point(&self.windows, self.mouse_state.pos)
-                            {
-                                // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
-                                self.message_queue.push((control.hwnd, Message::MouseMove));
-
-                                if let Some(prev_control) =
-                                    window_at_point(&self.windows, last_mouse_position)
-                                {
-                                    if control.hwnd != prev_control.hwnd {
-                                        self.message_queue
-                                            .push((control.hwnd, Message::MouseEnter));
-                                        self.message_queue
-                                            .push((prev_control.hwnd, Message::MouseLeave));
-                                    }
-                                }
-                            }
-                        }
-                        last_mouse_position = self.mouse_state.pos;
-                    }
-                    Event::Window { win_event, .. } => match win_event {
-                        WindowEvent::SizeChanged(w, h) => {
-                            // Update this top-level window's dimensions
-                            let top_level_window = window_from_hwnd_mut(&mut self.windows, hwnd);
-                            top_level_window.rect = Rect {
-                                x: 0.0,
-                                y: 0.0,
-                                w: w as f32 + 2.0,
-                                h: h as f32 + 2.0,
-                            };
-                            self.invalidate_hwnd(hwnd);
-                        }
-                        _ => {}
-                    },
-                    Event::KeyDown { keycode, .. } => {
-                        if keycode.is_none() {
-                            break;
-                        }
-                        if let Some(hwnd) = self.focused_hwnd {
-                            self.message_queue
-                                .push((hwnd, Message::KeyDown(keycode.unwrap())));
-                        }
-                    }
-                    Event::TextInput { text, .. } => {
-                        self.last_text_input = text;
-                        if let Some(hwnd) = self.focused_hwnd {
-                            self.message_queue.push((hwnd, Message::TextInput));
-                        }
-                    }
-                    Event::KeyUp { keycode, .. } => {
-                        if keycode.is_none() {
-                            break;
-                        }
-                        if let Some(hwnd) = self.focused_hwnd {
-                            self.message_queue
-                                .push((hwnd, Message::KeyUp(keycode.unwrap())));
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            for (hwnd, message) in self.message_queue.clone() {
-                // Paint messages should never arrive in the message queue, since they're always directly sent as part of dirty rect processor
-                assert_ne!(message, Message::Paint);
-                self.send_message(hwnd, message);
-            }
-
-            self.message_queue.clear();
-
-            // Repaint all controls inside each dirty rect
-            for rect in self.dirty_rects.clone() {
-                self.paint_rect(rect);
-            }
-
-            // We only need to perform expensive canvas swap if something was actually repainted
-            if !self.dirty_rects.is_empty() {
-                self.canvas.as_mut().unwrap().present();
-            }
-
-            self.dirty_rects.clear();
-        }
+        // let sdl_context = sdl2::init().unwrap();
+        // let video_subsystem = sdl_context.video().unwrap();
+        //
+        // let _ttf_context = sdl2::ttf::init().unwrap();
+        //
+        // let top_level_window = window_from_hwnd(&self.windows, hwnd);
+        // let mut window_builder = &mut video_subsystem.window(
+        //     &top_level_window.caption,
+        //     top_level_window.rect.w as u32,
+        //     top_level_window.rect.h as u32,
+        // );
+        //
+        // window_builder
+        //     .position(
+        //         top_level_window.rect.x as i32,
+        //         top_level_window.rect.y as i32,
+        //     )
+        //     .opengl()
+        //     .resizable();
+        //
+        // if top_level_window.rect.x == CENTER_SCREEN && top_level_window.rect.y == CENTER_SCREEN {
+        //     window_builder = window_builder.position_centered();
+        // }
+        //
+        // let sdl_window = window_builder.build().unwrap();
+        // self.canvas = Some(sdl_window.into_canvas().present_vsync().build().unwrap());
+        // let mut event_pump = sdl_context.event_pump().unwrap();
+        //
+        // let mut last_mouse_position = Point::default();
+        //
+        // 'running: loop {
+        //     self.mouse_state.pos =
+        //         Point::new_i(event_pump.mouse_state().x(), event_pump.mouse_state().y());
+        //
+        //     for event in event_pump.poll_iter() {
+        //         match event {
+        //             Event::Quit { .. } => break 'running,
+        //             Event::MouseButtonDown { mouse_btn, .. } => {
+        //                 match mouse_btn {
+        //                     MouseButton::Left => {
+        //                         self.mouse_state.lmb = true;
+        //                     }
+        //                     MouseButton::Middle => {
+        //                         self.mouse_state.mmb = true;
+        //                     }
+        //                     MouseButton::Right => {
+        //                         self.mouse_state.rmb = true;
+        //                     }
+        //                     _ => {}
+        //                 }
+        //
+        //                 if mouse_btn != MouseButton::Left {
+        //                     break;
+        //                 }
+        //
+        //                 self.mouse_state.lmb_down_pos = self.mouse_state.pos;
+        //
+        //                 if let Some(control) =
+        //                     window_at_point(&self.windows, self.mouse_state.lmb_down_pos)
+        //                 {
+        //                     // If focused HWNDs differ, we unfocus the old one
+        //                     if self.focused_hwnd.is_some_and(|x| x != control.hwnd) {
+        //                         if window_from_hwnd(&self.windows, self.focused_hwnd.unwrap())
+        //                             .styles
+        //                             .contains(Styles::Focusable)
+        //                         {
+        //                             self.message_queue
+        //                                 .push((self.focused_hwnd.unwrap(), Message::Unfocus));
+        //                         }
+        //                     }
+        //
+        //                     self.focused_hwnd = Some(control.hwnd);
+        //                     self.message_queue.push((control.hwnd, Message::LmbDown));
+        //
+        //                     if window_from_hwnd(&self.windows, control.hwnd)
+        //                         .styles
+        //                         .contains(Styles::Focusable)
+        //                     {
+        //                         self.message_queue.push((control.hwnd, Message::Focus));
+        //                     }
+        //                 }
+        //             }
+        //             Event::MouseButtonUp { mouse_btn, .. } => {
+        //                 match mouse_btn {
+        //                     MouseButton::Left => {
+        //                         self.mouse_state.lmb = true;
+        //                     }
+        //                     MouseButton::Middle => {
+        //                         self.mouse_state.mmb = true;
+        //                     }
+        //                     MouseButton::Right => {
+        //                         self.mouse_state.rmb = true;
+        //                     }
+        //                     _ => {}
+        //                 }
+        //
+        //                 if mouse_btn != MouseButton::Left {
+        //                     break;
+        //                 }
+        //                 // Following assumption is made: We can't have up without down happening prior to it.
+        //                 // The control at the mouse down position thus needs to know if the mouse was released afterwards, either inside or outside of its client area.
+        //                 if let Some(control) =
+        //                     window_at_point(&self.windows, self.mouse_state.lmb_down_pos)
+        //                 {
+        //                     self.message_queue.push((control.hwnd, Message::LmbUp));
+        //                 }
+        //             }
+        //             Event::MouseMotion { x, y, .. } => {
+        //                 // If we have a captured control, it gets special treatment
+        //                 if let Some(captured_hwnd) = self.captured_hwnd {
+        //                     let captured_window = window_from_hwnd(&self.windows, captured_hwnd);
+        //                     // 1. Send MouseMove unconditionally
+        //                     self.message_queue.push((captured_hwnd, Message::MouseMove));
+        //
+        //                     // 2. Send MouseEnter/Leave based solely off of its own client rect
+        //                     if self.mouse_state.pos.inside(captured_window.rect)
+        //                         && !last_mouse_position.inside(captured_window.rect)
+        //                     {
+        //                         self.message_queue
+        //                             .push((captured_hwnd, Message::MouseEnter));
+        //                     }
+        //                     if !self.mouse_state.pos.inside(captured_window.rect)
+        //                         && last_mouse_position.inside(captured_window.rect)
+        //                     {
+        //                         self.message_queue
+        //                             .push((captured_hwnd, Message::MouseLeave));
+        //                     }
+        //                 } else {
+        //                     if let Some(control) =
+        //                         window_at_point(&self.windows, self.mouse_state.pos)
+        //                     {
+        //                         // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
+        //                         self.message_queue.push((control.hwnd, Message::MouseMove));
+        //
+        //                         if let Some(prev_control) =
+        //                             window_at_point(&self.windows, last_mouse_position)
+        //                         {
+        //                             if control.hwnd != prev_control.hwnd {
+        //                                 self.message_queue
+        //                                     .push((control.hwnd, Message::MouseEnter));
+        //                                 self.message_queue
+        //                                     .push((prev_control.hwnd, Message::MouseLeave));
+        //                             }
+        //                         }
+        //                     }
+        //                 }
+        //                 last_mouse_position = self.mouse_state.pos;
+        //             }
+        //             Event::Window { win_event, .. } => match win_event {
+        //                 WindowEvent::SizeChanged(w, h) => {
+        //                     // Update this top-level window's dimensions
+        //                     let top_level_window = window_from_hwnd_mut(&mut self.windows, hwnd);
+        //                     top_level_window.rect = Rect {
+        //                         x: 0.0,
+        //                         y: 0.0,
+        //                         w: w as f32 + 2.0,
+        //                         h: h as f32 + 2.0,
+        //                     };
+        //                     self.invalidate_hwnd(hwnd);
+        //                 }
+        //                 _ => {}
+        //             },
+        //             Event::KeyDown { keycode, .. } => {
+        //                 if keycode.is_none() {
+        //                     break;
+        //                 }
+        //                 if let Some(hwnd) = self.focused_hwnd {
+        //                     self.message_queue
+        //                         .push((hwnd, Message::KeyDown(keycode.unwrap())));
+        //                 }
+        //             }
+        //             Event::TextInput { text, .. } => {
+        //                 self.last_text_input = text;
+        //                 if let Some(hwnd) = self.focused_hwnd {
+        //                     self.message_queue.push((hwnd, Message::TextInput));
+        //                 }
+        //             }
+        //             Event::KeyUp { keycode, .. } => {
+        //                 if keycode.is_none() {
+        //                     break;
+        //                 }
+        //                 if let Some(hwnd) = self.focused_hwnd {
+        //                     self.message_queue
+        //                         .push((hwnd, Message::KeyUp(keycode.unwrap())));
+        //                 }
+        //             }
+        //             _ => {}
+        //         }
+        //     }
+        //
+        //     for (hwnd, message) in self.message_queue.clone() {
+        //         // Paint messages should never arrive in the message queue, since they're always directly sent as part of dirty rect processor
+        //         assert_ne!(message, Message::Paint);
+        //         self.send_message(hwnd, message);
+        //     }
+        //
+        //     self.message_queue.clear();
+        //
+        //     // Repaint all controls inside each dirty rect
+        //     for rect in self.dirty_rects.clone() {
+        //         self.paint_rect(rect);
+        //     }
+        //
+        //     // We only need to perform expensive canvas swap if something was actually repainted
+        //     if !self.dirty_rects.is_empty() {
+        //         self.canvas.as_mut().unwrap().present();
+        //     }
+        //
+        //     self.dirty_rects.clear();
+        // }
 
         // FIXME: Destroy windows on exit!
         // for window in self.windows.iter().rev() {

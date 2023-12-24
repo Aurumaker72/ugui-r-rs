@@ -1,13 +1,10 @@
-extern crate sdl2;
-
 use crate::WNDPROC;
 use std::collections::HashMap;
 
-
 use crate::core::dynval;
-use flagset::FlagSet;
 use crate::gfx::rect::Rect;
 use crate::gfx::styles::Styles;
+use flagset::FlagSet;
 
 use crate::HWND;
 

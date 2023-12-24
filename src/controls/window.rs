@@ -1,7 +1,7 @@
+use crate::gfx::color::Color;
 use crate::gfx::styles::Styles;
 use crate::*;
 use flagset::FlagSet;
-use sdl2::pixels::Color;
 
 pub fn window_style() -> FlagSet<Styles> {
     Styles::Visible | Styles::Enabled
@@ -23,8 +23,8 @@ pub fn window_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
 
             ugui.paint_quad(
                 rect,
-                Color::RGB(240, 240, 240),
-                Color::RGB(240, 240, 240),
+                Color::rgb(240, 240, 240),
+                Color::rgb(240, 240, 240),
                 1.0,
             );
         }

@@ -6,9 +6,10 @@ use crate::HWND;
 use flagset::FlagSet;
 use num_traits::{FromPrimitive, ToPrimitive};
 
-use crate::gfx::styles::{hex_color, Styles};
+use crate::gfx::styles::{ Styles};
 use std::collections::HashMap;
 use std::ops::Deref;
+use crate::gfx::color::Color;
 
 #[derive(Copy, Clone, Default, Debug)]
 struct TextboxState {
@@ -92,19 +93,19 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             let colors = HashMap::from([
                 (
                     VisualState::Normal,
-                    (hex_color("#FFFFFF"), hex_color("#7A7A7A")),
+                    (Color::hex("#FFFFFF"), Color::hex("#7A7A7A")),
                 ),
                 (
                     VisualState::Hover,
-                    (hex_color("#FFFFFF"), hex_color("#171717")),
+                    (Color::hex("#FFFFFF"), Color::hex("#171717")),
                 ),
                 (
                     VisualState::Active,
-                    (hex_color("#FFFFFF"), hex_color("#0078D7")),
+                    (Color::hex("#FFFFFF"), Color::hex("#0078D7")),
                 ),
                 (
                     VisualState::Disabled,
-                    (hex_color("#FFFFFF"), hex_color("#CCCCCC")),
+                    (Color::hex("#FFFFFF"), Color::hex("#CCCCCC")),
                 ),
             ]);
 

@@ -1,4 +1,3 @@
-use sdl2::rect::Rect as SdlRect;
 use crate::gfx::point::Point;
 
 #[derive(Clone, Copy, Default, PartialEq, Debug)]
@@ -96,8 +95,5 @@ impl Rect {
             || self.right() < other.x
             || self.y > other.bottom()
             || self.bottom() < other.y)
-    }
-    pub fn to_sdl(&self) -> SdlRect {
-        SdlRect::new(self.x as i32, self.y as i32, self.w as u32, self.h as u32)
     }
 }

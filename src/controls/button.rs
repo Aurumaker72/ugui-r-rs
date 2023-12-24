@@ -5,8 +5,9 @@ use crate::core::ugui::Ugui;
 use crate::HWND;
 use flagset::FlagSet;
 
-use crate::gfx::styles::{hex_color, Styles};
+use crate::gfx::styles::{ Styles};
 use std::collections::HashMap;
+use crate::gfx::color::Color;
 
 #[derive(Copy, Clone, Default, Debug)]
 struct ButtonState {
@@ -89,19 +90,19 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             let colors = HashMap::from([
                 (
                     VisualState::Normal,
-                    (hex_color("#E1E1E1"), hex_color("#ADADAD")),
+                    (Color::hex("#E1E1E1"), Color::hex("#ADADAD")),
                 ),
                 (
                     VisualState::Hover,
-                    (hex_color("#E5F1FB"), hex_color("#0078D7")),
+                    (Color::hex("#E5F1FB"), Color::hex("#0078D7")),
                 ),
                 (
                     VisualState::Active,
-                    (hex_color("#CCE4F7"), hex_color("#005499")),
+                    (Color::hex("#CCE4F7"), Color::hex("#005499")),
                 ),
                 (
                     VisualState::Disabled,
-                    (hex_color("#CCCCCC"), hex_color("#BFBFBF")),
+                    (Color::hex("#CCCCCC"), Color::hex("#BFBFBF")),
                 ),
             ]);
             ugui.paint_quad(

@@ -6,9 +6,9 @@ use crate::HWND;
 use flagset::FlagSet;
 
 use crate::gfx::rect::Rect;
-use crate::gfx::styles::{hex_color, Styles};
-use sdl2::pixels::Color;
+use crate::gfx::styles::{ Styles};
 use std::collections::HashMap;
+use crate::gfx::color::Color;
 
 #[derive(Copy, Clone, Default, Debug)]
 struct ScrollbarState {
@@ -141,19 +141,19 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             let colors = HashMap::from([
                 (
                     VisualState::Normal,
-                    (hex_color("#F0F0F0"), hex_color("#CDCDCD")),
+                    (Color::hex("#F0F0F0"), Color::hex("#CDCDCD")),
                 ),
                 (
                     VisualState::Hover,
-                    (hex_color("#F0F0F0"), hex_color("#A6A6A6")),
+                    (Color::hex("#F0F0F0"), Color::hex("#A6A6A6")),
                 ),
                 (
                     VisualState::Active,
-                    (hex_color("#F0F0F0"), hex_color("#606060")),
+                    (Color::hex("#F0F0F0"), Color::hex("#606060")),
                 ),
                 (
                     VisualState::Disabled,
-                    (hex_color("#F0F0F0"), hex_color("#C0C0C0")),
+                    (Color::hex("#F0F0F0"), Color::hex("#C0C0C0")),
                 ),
             ]);
 

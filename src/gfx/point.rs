@@ -1,5 +1,4 @@
 use crate::gfx::rect::Rect;
-use sdl2::rect::Point as SdlPoint;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Point {
@@ -13,9 +12,6 @@ impl Point {
             x: x as f32,
             y: y as f32,
         }
-    }
-    pub fn to_sdl(&self) -> SdlPoint {
-        SdlPoint::new(self.x as i32, self.y as i32)
     }
     pub fn inside(&self, rect: Rect) -> bool {
         self.x > rect.x && self.x < rect.right() && self.y > rect.y && self.y < rect.bottom()

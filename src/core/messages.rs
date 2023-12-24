@@ -1,4 +1,4 @@
-use sdl2::keyboard::Keycode;
+use crate::gfx::keycode::Keycode;
 use crate::HWND;
 
 /// Messages which are sent to controls when application events happen
