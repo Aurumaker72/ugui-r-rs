@@ -1,4 +1,4 @@
-use crate::core::geo::Point;
+use crate::gfx::point::Point;
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct MouseState {

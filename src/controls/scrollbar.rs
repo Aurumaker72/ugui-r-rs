@@ -1,14 +1,14 @@
 use crate::controls::visual_state::VisualState;
 use crate::core::messages::Message;
 
-use crate::core::styles::{hex_color, Styles};
 use crate::core::ugui::Ugui;
 use crate::HWND;
 use flagset::FlagSet;
 
-use crate::core::geo::Rect;
+use crate::gfx::styles::{hex_color, Styles};
 use sdl2::pixels::Color;
 use std::collections::HashMap;
+use crate::gfx::rect::Rect;
 
 #[derive(Copy, Clone, Default, Debug)]
 struct ScrollbarState {
@@ -147,18 +147,8 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 state.unwrap().visual_state
             };
 
-            ugui.paint_quad(
-                back_rect,
-                colors[&visual_state].0,
-                Color::RED,
-                0.0,
-            );
-            ugui.paint_quad(
-                thumb_rect,
-                colors[&visual_state].1,
-                Color::RED,
-                0.0,
-            );
+            ugui.paint_quad(back_rect, colors[&visual_state].0, Color::RED, 0.0);
+            ugui.paint_quad(thumb_rect, colors[&visual_state].1, Color::RED, 0.0);
         }
         _ => {}
     }

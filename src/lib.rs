@@ -7,6 +7,8 @@ extern crate num_derive;
 pub mod core;
 pub mod window;
 pub mod controls;
+pub mod input;
+pub mod gfx;
 
 pub type HWND = usize;
 pub type WNDPROC = fn(&mut Ugui, HWND, Message) -> u64;

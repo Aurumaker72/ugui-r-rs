@@ -1,41 +1,5 @@
-use sdl2::rect::Point as SdlPoint;
 use sdl2::rect::Rect as SdlRect;
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Point {
-    pub x: f32,
-    pub y: f32,
-}
-
-impl Point {
-    pub fn new_i(x: i32, y: i32) -> Point {
-        Point {
-            x: x as f32,
-            y: y as f32,
-        }
-    }
-    pub fn to_sdl(&self) -> SdlPoint {
-        SdlPoint::new(self.x as i32, self.y as i32)
-    }
-    pub fn inside(&self, rect: Rect) -> bool {
-        self.x > rect.x && self.x < rect.right() && self.y > rect.y && self.y < rect.bottom()
-    }
-    pub fn add(&self, other: Point) -> Point {
-        Point {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
-    }
-    pub fn sub(&self, other: Point) -> Point {
-        Point {
-            x: self.x - other.x,
-            y: self.y - other.y,
-        }
-    }
-    pub fn dist(&self, other: Point) -> f32 {
-        ((other.x - self.x).powf(2.0) + (other.y - self.y).powf(2.0)).sqrt()
-    }
-}
+use crate::gfx::point::Point;
 
 #[derive(Clone, Copy, Default, PartialEq, Debug)]
 pub struct Rect {
@@ -136,17 +100,4 @@ impl Rect {
     pub fn to_sdl(&self) -> SdlRect {
         SdlRect::new(self.x as i32, self.y as i32, self.w as u32, self.h as u32)
     }
-}
-
-pub fn remap(value: f32, from1: f32, to1: f32, from2: f32, to2: f32) -> f32 {
-    (value - from1) / (to1 - from1) * (to2 - from2) + from2
-}
-
-#[derive(Clone, Copy, Default, PartialEq, Debug)]
-pub enum Alignment {
-    #[default]
-    Start,
-    Center,
-    End,
-    Fill,
 }

@@ -1,4 +1,4 @@
-use crate::core::styles::Styles;
+use crate::gfx::styles::Styles;
 use crate::*;
 use flagset::FlagSet;
 use sdl2::pixels::Color;

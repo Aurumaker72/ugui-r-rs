@@ -1,9 +1,6 @@
 extern crate sdl2;
 
-use crate::core::geo::Alignment;
-use crate::core::geo::{Point, Rect};
 use crate::core::messages::Message;
-use crate::core::styles::Styles;
 use crate::window::Window;
 use crate::CENTER_SCREEN;
 use crate::HWND;
@@ -13,8 +10,12 @@ use flagset::FlagSet;
 use sdl2::event::{Event, WindowEvent};
 
 use crate::core::dynval::Value;
-use crate::core::mouse::MouseState;
 use crate::core::util::*;
+use crate::gfx::alignment::Alignment;
+use crate::gfx::point::Point;
+use crate::gfx::rect::Rect;
+use crate::gfx::styles::Styles;
+use crate::input::mouse::MouseState;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::render::WindowCanvas;

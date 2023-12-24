@@ -1,12 +1,12 @@
 use crate::controls::visual_state::VisualState;
 use crate::core::messages::Message;
 
-use crate::core::styles::{hex_color, Styles};
 use crate::core::ugui::Ugui;
 use crate::HWND;
 use flagset::FlagSet;
 use num_traits::{FromPrimitive, ToPrimitive};
 
+use crate::gfx::styles::{hex_color, Styles};
 use std::collections::HashMap;
 use std::ops::Deref;
 

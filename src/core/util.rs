@@ -1,5 +1,6 @@
-use crate::core::geo::{Point, Rect};
-use crate::core::styles::Styles;
+use crate::gfx::point::Point;
+use crate::gfx::rect::Rect;
+use crate::gfx::styles::Styles;
 use crate::window::Window;
 use crate::HWND;
 

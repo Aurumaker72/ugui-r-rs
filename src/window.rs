@@ -3,11 +3,11 @@ extern crate sdl2;
 use crate::WNDPROC;
 use std::collections::HashMap;
 
-use crate::core::geo::Rect;
 
 use crate::core::dynval;
-use crate::core::styles::Styles;
 use flagset::FlagSet;
+use crate::gfx::rect::Rect;
+use crate::gfx::styles::Styles;
 
 use crate::HWND;
 

@@ -2,11 +2,11 @@ use ugui_r_rs::controls::button::{button_proc, button_style};
 use ugui_r_rs::controls::scrollbar::{scrollbar_proc, scrollbar_set, scrollbar_style};
 use ugui_r_rs::controls::textbox::textbox_proc;
 use ugui_r_rs::controls::window::{window_proc, window_style};
-use ugui_r_rs::core::geo::Rect;
 use ugui_r_rs::core::messages::Message;
 
 use ugui_r_rs::core::ugui::Ugui;
 use ugui_r_rs::CENTER_SCREEN;
+use ugui_r_rs::gfx::rect::Rect;
 use ugui_r_rs::HWND;
 
 fn main() {
