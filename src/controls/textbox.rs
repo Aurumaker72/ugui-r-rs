@@ -10,6 +10,7 @@ use crate::gfx::styles::{ Styles};
 use std::collections::HashMap;
 use std::ops::Deref;
 use crate::gfx::color::Color;
+use crate::gfx::painter::Painter;
 
 #[derive(Copy, Clone, Default, Debug)]
 struct TextboxState {

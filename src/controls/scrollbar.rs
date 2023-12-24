@@ -9,6 +9,7 @@ use crate::gfx::rect::Rect;
 use crate::gfx::styles::{ Styles};
 use std::collections::HashMap;
 use crate::gfx::color::Color;
+use crate::gfx::painter::Painter;
 
 #[derive(Copy, Clone, Default, Debug)]
 struct ScrollbarState {

@@ -8,6 +8,7 @@ use flagset::FlagSet;
 use crate::gfx::styles::{ Styles};
 use std::collections::HashMap;
 use crate::gfx::color::Color;
+use crate::gfx::painter::Painter;
 
 #[derive(Clone, Default, Debug)]
 struct ListboxState {

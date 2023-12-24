@@ -2,6 +2,7 @@ use crate::gfx::color::Color;
 use crate::gfx::styles::Styles;
 use crate::*;
 use flagset::FlagSet;
+use crate::gfx::painter::Painter;
 
 pub fn window_style() -> FlagSet<Styles> {
     Styles::Visible | Styles::Enabled

@@ -3,6 +3,7 @@ use crate::core::messages::Message;
 use crate::core::util::*;
 use crate::gfx::alignment::Alignment;
 use crate::gfx::color::Color;
+use crate::gfx::drawop::QuadDrawOp;
 use crate::gfx::point::Point;
 use crate::gfx::rect::Rect;
 use crate::gfx::styles::Styles;
@@ -13,11 +14,12 @@ use crate::HWND;
 use crate::WNDPROC;
 use flagset::FlagSet;
 
-
+use crate::gfx::painter::Painter;
 use ggez::event;
-use ggez::event::ControlFlow;
 use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent};
-use ggez::graphics::{self, DrawMode};
+use ggez::event::ControlFlow;
+use ggez::glam::Vec2;
+use ggez::graphics::{self, Canvas, DrawMode, FillOptions};
 use ggez::input::keyboard;
 use ggez::GameResult;
 
@@ -35,6 +37,30 @@ pub struct Ugui {
     dirty_rects: Vec<Rect>,
     /// Wrapper for mouse state, can be retrieved by user
     mouse_state: MouseState,
+    /// A list of quad drawing operations
+    quad_draw_ops: Vec<QuadDrawOp>,
+}
+impl Painter for Ugui {
+    fn paint_quad(&mut self, rect: Rect, back_color: Color, border_color: Color, border_size: f32) {
+        self.quad_draw_ops.push(QuadDrawOp {
+            rect,
+            back_color,
+            border_color,
+            border_size,
+        });
+    }
+
+    fn paint_text<'a>(
+        &mut self,
+        text: &str,
+        rect: Rect,
+        color: Color,
+        horizontal_alignment: Alignment,
+        vertical_alignment: Alignment,
+        line_height: f32,
+    ) {
+        todo!()
+    }
 }
 
 impl Ugui {
@@ -61,6 +87,45 @@ impl Ugui {
         }
 
         // self.canvas.as_mut().unwrap().set_clip_rect(prev_clip);
+    }
+
+    fn process_draw_ops(&mut self, canvas: &mut Canvas) {
+        for quad_draw_op in &self.quad_draw_ops {
+            let rect = quad_draw_op.rect;
+            let back_color = quad_draw_op.back_color;
+            let border_color = quad_draw_op.border_color;
+            let border_size = quad_draw_op.border_size;
+
+            let border_rect = rect.inflate(border_size);
+            let border_rect_ggez =
+                graphics::Rect::new(border_rect.x, border_rect.y, border_rect.w, border_rect.h);
+            let rect_ggez = graphics::Rect::new(rect.x, rect.y, rect.w, rect.h);
+            canvas.draw(
+                &graphics::Quad,
+                graphics::DrawParam::new()
+                    .dest(border_rect_ggez.point())
+                    .scale(border_rect_ggez.size())
+                    .color(graphics::Color::from_rgba(
+                        border_color.r,
+                        border_color.g,
+                        border_color.b,
+                        border_color.a,
+                    )),
+            );
+            canvas.draw(
+                &graphics::Quad,
+                graphics::DrawParam::new()
+                    .dest(rect_ggez.point())
+                    .scale(rect_ggez.size())
+                    .color(graphics::Color::from_rgba(
+                        back_color.r,
+                        back_color.g,
+                        back_color.b,
+                        back_color.a,
+                    )),
+            );
+        }
+        self.quad_draw_ops.clear();
     }
 }
 
@@ -339,35 +404,6 @@ impl Ugui {
         self.captured_hwnd = None
     }
 
-    /// Paints a decorated quad
-    ///
-    /// # Arguments
-    ///
-    /// * `rect`: The quad destination
-    /// * `back_color`: The quad's background color
-    /// * `border_color`: The quad's border color
-    /// * `border_size`: The quad's border size
-    pub fn paint_quad(
-        &mut self,
-        rect: Rect,
-        back_color: Color,
-        border_color: Color,
-        border_size: f32,
-    ) {
-        // self.canvas.as_mut().unwrap().set_draw_color(border_color);
-        // self.canvas
-        //     .as_mut()
-        //     .unwrap()
-        //     .fill_rect(rect.to_sdl())
-        //     .unwrap();
-        // self.canvas.as_mut().unwrap().set_draw_color(back_color);
-        // self.canvas
-        //     .as_mut()
-        //     .unwrap()
-        //     .fill_rect(rect.inflate(-border_size).to_sdl())
-        //     .unwrap();
-    }
-
     /// Sets a window's caption
     ///
     /// # Arguments
@@ -391,42 +427,14 @@ impl Ugui {
         }
     }
 
-    /// Paints unformatted text
-    ///
-    /// # Arguments
-    ///
-    /// * `font`: The font to paint the text with
-    /// * `text`: The text
-    /// * `rect`: The text bounds
-    /// * `color`: The text color
-    /// * `horizontal_alignment`: The text's horizontal alignment inside its bounds
-    /// * `vertical_alignment`: The text's vertical alignment inside its bounds
-    /// * `line_height`: The space between line breaks
-    pub fn paint_text<'a>(
-        &mut self,
-        text: &str,
-        rect: Rect,
-        color: Color,
-        horizontal_alignment: Alignment,
-        vertical_alignment: Alignment,
-        line_height: f32,
-    ) {
-    }
-
     /// Shows a window, trapping the caller until the window closes
     ///
     /// # Arguments
     ///
     /// * `hwnd`: The window's handle
-    pub fn show_window(&mut self, hwnd: HWND) {
-
-
+    pub fn show_window(mut self, hwnd: HWND) {
         let cb = ggez::ContextBuilder::new("eventloop", "ggez");
         let (mut ctx, events_loop) = cb.build().unwrap();
-
-        let mut position: f32 = 1.0;
-
-        // Handle events. Refer to `winit` docs for more information.
         events_loop.run(move |mut event, _window_target, control_flow| {
             let ctx = &mut ctx;
 
@@ -440,74 +448,63 @@ impl Ugui {
 
             *control_flow = ControlFlow::Poll;
 
-            // This tells `ggez` to update it's internal states, should the event require that.
-            // These include cursor position, view updating on resize, etc.
             event::process_event(ctx, &mut event);
             match event {
                 Event::WindowEvent { event, .. } => match event {
                     WindowEvent::CloseRequested => ctx.request_quit(),
                     WindowEvent::KeyboardInput {
                         input:
-                        KeyboardInput {
-                            virtual_keycode: Some(keycode),
-                            ..
-                        },
+                            KeyboardInput {
+                                virtual_keycode: Some(keycode),
+                                ..
+                            },
                         ..
                     } => {
                         if let keyboard::KeyCode::Escape = keycode {
                             ctx.request_quit();
                         }
                     }
-                    // `CloseRequested` and `KeyboardInput` events won't appear here.
-                    x => println!("Other window event fired: {x:?}"),
+                    _ => {}
                 },
                 Event::MainEventsCleared => {
-                    // Tell the timer stuff a frame has happened.
-                    // Without this the FPS timer functions and such won't work.
                     ctx.time.tick();
-
-                    // Update
-                    position += 1.0;
-
-                    // Draw
                     ctx.gfx.begin_frame().unwrap();
 
-                    let mut canvas =
-                        graphics::Canvas::from_frame(ctx, graphics::Color::from([0.1, 0.2, 0.3, 1.0]));
-
-                    let circle = graphics::Mesh::new_circle(
+                    let mut canvas = graphics::Canvas::from_frame(
                         ctx,
-                        DrawMode::fill(),
-                        ggez::glam::Vec2::new(0.0, 0.0),
-                        100.0,
-                        2.0,
-                         graphics::Color::WHITE,
-                    )
-                        .unwrap();
-                    canvas.draw(&circle, ggez::glam::Vec2::new(position, 380.0));
+                        graphics::Color::from([0.0, 0.0, 0.0, 0.0]),
+                    );
+
+                    for (hwnd, message) in self.message_queue.clone() {
+                        // Paint messages should never arrive in the message queue, since they're always directly sent as part of dirty rect processor
+                        assert_ne!(message, Message::Paint);
+                        self.send_message(hwnd, message);
+                    }
+                    self.message_queue.clear();
+
+                    // Repaint all dirty rects
+                    for rect in self.dirty_rects.clone() {
+                        self.paint_rect(rect);
+                    }
+                    self.dirty_rects.clear();
+
+                    self.process_draw_ops(&mut canvas);
 
                     canvas.finish(ctx).unwrap();
                     ctx.gfx.end_frame().unwrap();
 
-                    // reset the mouse delta for the next frame
-                    // necessary because it's calculated cumulatively each cycle
-                    ctx.mouse.reset_delta();
+                    // Update phase
 
-                    // Copy the state of the keyboard into the KeyboardContext and
-                    // the mouse into the MouseContext.
-                    // Not required for this example but important if you want to
-                    // use the functions keyboard::is_key_just_pressed/released and
-                    // mouse::is_button_just_pressed/released.
+                    ctx.mouse.reset_delta();
                     ctx.keyboard.save_keyboard_state();
                     ctx.mouse.save_mouse_state();
 
                     ggez::timer::yield_now();
                 }
 
-                x => println!("Device event fired: {x:?}"),
+                x => {}
             }
         });
-
 
         // let sdl_context = sdl2::init().unwrap();
         // let video_subsystem = sdl_context.video().unwrap();
