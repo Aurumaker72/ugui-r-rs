@@ -124,7 +124,7 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             let back_rect = ugui.get_window_rect(hwnd);
             let thumb_rect = Rect {
                 x: back_rect.x,
-                y: back_rect.y + (back_rect.h * state.unwrap().value),
+                y: back_rect.y + (back_rect.h * 0.5 * state.unwrap().value),
                 w: back_rect.w,
                 h: back_rect.h * state.unwrap().size,
             };
