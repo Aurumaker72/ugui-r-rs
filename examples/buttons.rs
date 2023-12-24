@@ -1,3 +1,4 @@
+use std::ops::{BitXor, Rem};
 use ugui_r_rs::controls::button::{button_proc, button_style, BUTTON_CLICK};
 use ugui_r_rs::controls::scrollbar::{
     scrollbar_get_value, scrollbar_proc, scrollbar_set, scrollbar_style, SCROLLBAR_CHANGED,
@@ -9,6 +10,7 @@ use ugui_r_rs::core::messages::Message;
 use ugui_r_rs::core::ugui::Ugui;
 use ugui_r_rs::gfx::rect::Rect;
 use ugui_r_rs::CENTER_SCREEN;
+use ugui_r_rs::gfx::styles::Styles;
 use ugui_r_rs::HWND;
 
 fn main() {
@@ -17,7 +19,7 @@ fn main() {
     fn my_wndproc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
         match message {
             Message::Create => {
-                for i in 0..20 {
+                for i in 0..10 {
                     for j in 0..2 {
                         let hwnd = ugui
                             .create_window(
@@ -70,7 +72,7 @@ fn main() {
         )
         .unwrap();
 
-    for i in 0..5 {
+    for i in 0..3 {
         for j in 0..5 {
             ugui.create_window(
                 "BUTTON".to_string(),
@@ -89,7 +91,7 @@ fn main() {
         }
     }
 
-    for i in 0..5 {
+    for i in 0..3 {
         for j in 0..5 {
             ugui.create_window(
                 "EDIT".to_string(),
