@@ -1,11 +1,5 @@
-use crate::core::messages::Message;
-use crate::window::Window;
-use crate::CENTER_SCREEN;
-use crate::HWND;
-use crate::WNDPROC;
-use flagset::FlagSet;
-
 use crate::core::dynval::Value;
+use crate::core::messages::Message;
 use crate::core::util::*;
 use crate::gfx::alignment::Alignment;
 use crate::gfx::color::Color;
@@ -13,6 +7,20 @@ use crate::gfx::point::Point;
 use crate::gfx::rect::Rect;
 use crate::gfx::styles::Styles;
 use crate::input::mouse::MouseState;
+use crate::window::Window;
+use crate::CENTER_SCREEN;
+use crate::HWND;
+use crate::WNDPROC;
+use flagset::FlagSet;
+
+
+use ggez::event;
+use ggez::event::ControlFlow;
+use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent};
+use ggez::graphics::{self, DrawMode};
+use ggez::input::keyboard;
+use ggez::GameResult;
+
 /// An application, roughly equivalent to a top-level window with a message loop and many child windows.
 #[derive(Default)]
 pub struct Ugui {
@@ -411,6 +419,96 @@ impl Ugui {
     ///
     /// * `hwnd`: The window's handle
     pub fn show_window(&mut self, hwnd: HWND) {
+
+
+        let cb = ggez::ContextBuilder::new("eventloop", "ggez");
+        let (mut ctx, events_loop) = cb.build().unwrap();
+
+        let mut position: f32 = 1.0;
+
+        // Handle events. Refer to `winit` docs for more information.
+        events_loop.run(move |mut event, _window_target, control_flow| {
+            let ctx = &mut ctx;
+
+            if ctx.quit_requested {
+                ctx.continuing = false;
+            }
+            if !ctx.continuing {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
+
+            *control_flow = ControlFlow::Poll;
+
+            // This tells `ggez` to update it's internal states, should the event require that.
+            // These include cursor position, view updating on resize, etc.
+            event::process_event(ctx, &mut event);
+            match event {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::CloseRequested => ctx.request_quit(),
+                    WindowEvent::KeyboardInput {
+                        input:
+                        KeyboardInput {
+                            virtual_keycode: Some(keycode),
+                            ..
+                        },
+                        ..
+                    } => {
+                        if let keyboard::KeyCode::Escape = keycode {
+                            ctx.request_quit();
+                        }
+                    }
+                    // `CloseRequested` and `KeyboardInput` events won't appear here.
+                    x => println!("Other window event fired: {x:?}"),
+                },
+                Event::MainEventsCleared => {
+                    // Tell the timer stuff a frame has happened.
+                    // Without this the FPS timer functions and such won't work.
+                    ctx.time.tick();
+
+                    // Update
+                    position += 1.0;
+
+                    // Draw
+                    ctx.gfx.begin_frame().unwrap();
+
+                    let mut canvas =
+                        graphics::Canvas::from_frame(ctx, graphics::Color::from([0.1, 0.2, 0.3, 1.0]));
+
+                    let circle = graphics::Mesh::new_circle(
+                        ctx,
+                        DrawMode::fill(),
+                        ggez::glam::Vec2::new(0.0, 0.0),
+                        100.0,
+                        2.0,
+                         graphics::Color::WHITE,
+                    )
+                        .unwrap();
+                    canvas.draw(&circle, ggez::glam::Vec2::new(position, 380.0));
+
+                    canvas.finish(ctx).unwrap();
+                    ctx.gfx.end_frame().unwrap();
+
+                    // reset the mouse delta for the next frame
+                    // necessary because it's calculated cumulatively each cycle
+                    ctx.mouse.reset_delta();
+
+                    // Copy the state of the keyboard into the KeyboardContext and
+                    // the mouse into the MouseContext.
+                    // Not required for this example but important if you want to
+                    // use the functions keyboard::is_key_just_pressed/released and
+                    // mouse::is_button_just_pressed/released.
+                    ctx.keyboard.save_keyboard_state();
+                    ctx.mouse.save_mouse_state();
+
+                    ggez::timer::yield_now();
+                }
+
+                x => println!("Device event fired: {x:?}"),
+            }
+        });
+
+
         // let sdl_context = sdl2::init().unwrap();
         // let video_subsystem = sdl_context.video().unwrap();
         //
