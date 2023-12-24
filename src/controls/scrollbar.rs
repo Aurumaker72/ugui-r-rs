@@ -5,10 +5,10 @@ use crate::core::ugui::Ugui;
 use crate::HWND;
 use flagset::FlagSet;
 
+use crate::gfx::rect::Rect;
 use crate::gfx::styles::{hex_color, Styles};
 use sdl2::pixels::Color;
 use std::collections::HashMap;
-use crate::gfx::rect::Rect;
 
 #[derive(Copy, Clone, Default, Debug)]
 struct ScrollbarState {
@@ -18,6 +18,8 @@ struct ScrollbarState {
     value: f32,
     /// The current visual state
     visual_state: VisualState,
+    /// The scroll diff at the point of starting drag
+    drag_start_diff: f32,
 }
 
 pub fn scrollbar_style() -> FlagSet<Styles> {
@@ -69,7 +71,12 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             ugui.set_udata(hwnd, Some(Box::new(state)));
         }
         Message::LmbDown => {
+            let rect = ugui.get_window_rect(hwnd);
+            let pos = ugui.mouse_state().pos.sub(rect.top_left());
+
             state.as_mut().unwrap().visual_state = VisualState::Active;
+            state.as_mut().unwrap().drag_start_diff = state.unwrap().value - (pos.y / rect.h);
+
             ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
             ugui.capture_mouse(hwnd);
             ugui.invalidate_rect(rect);
@@ -107,8 +114,8 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 let rect = ugui.get_window_rect(hwnd);
                 let pos = ugui.mouse_state().pos.sub(rect.top_left());
 
-                let frac = pos.y / rect.h;
-                state.as_mut().unwrap().value = frac.clamp(0.0, 1.0);
+                let value = pos.y / rect.h;
+                state.as_mut().unwrap().value = (value + state.unwrap().drag_start_diff).clamp(0.0, 1.0);
                 ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
                 ugui.invalidate_hwnd(hwnd);
             }
