@@ -39,6 +39,13 @@ pub fn scrollbar_set(ugui: &mut Ugui, hwnd: HWND, size: f32, value: f32) {
         ugui.invalidate_hwnd(hwnd);
     }
 }
+pub fn scrollbar_get_value(ugui: &Ugui, hwnd: HWND) -> Option<f32> {
+    if let Some(data) = ugui.get_udata(hwnd) {
+        return Some((*(data.downcast::<ScrollbarState>().unwrap())).value);
+    }
+    None
+}
+
 pub const SCROLLBAR_CHANGED: u64 = 53;
 
 /// The message procedure implementation for a scrollbar
@@ -115,8 +122,10 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 let pos = ugui.mouse_state().pos.sub(rect.top_left());
 
                 let value = pos.y / rect.h;
-                state.as_mut().unwrap().value = (value + state.unwrap().drag_start_diff).clamp(0.0, 1.0);
+                state.as_mut().unwrap().value =
+                    (value + state.unwrap().drag_start_diff).clamp(0.0, 1.0);
                 ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+                ugui.send_message(ugui.root_hwnd(), Message::User(hwnd, SCROLLBAR_CHANGED));
                 ugui.invalidate_hwnd(hwnd);
             }
         }
