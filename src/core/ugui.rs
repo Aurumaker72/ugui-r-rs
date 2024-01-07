@@ -102,7 +102,13 @@ impl Ugui {
         for quad_draw_op in &self.quad_draw_ops {
             println!("{:?}", quad_draw_op);
 
-            let rect = graphics::Rect::new(
+            let back_rect = graphics::Rect::new(
+                quad_draw_op.rect.x + quad_draw_op.border_size,
+                quad_draw_op.rect.y + quad_draw_op.border_size,
+                quad_draw_op.rect.w - quad_draw_op.border_size * 2.0,
+                quad_draw_op.rect.h - quad_draw_op.border_size * 2.0,
+            );
+            let border_rect = graphics::Rect::new(
                 quad_draw_op.rect.x,
                 quad_draw_op.rect.y,
                 quad_draw_op.rect.w,
@@ -111,8 +117,20 @@ impl Ugui {
             canvas.draw(
                 &graphics::Quad,
                 graphics::DrawParam::new()
-                    .dest(rect.point())
-                    .scale(rect.size())
+                    .dest(border_rect.point())
+                    .scale(border_rect.size())
+                    .color(graphics::Color::from_rgba(
+                        quad_draw_op.border_color.r,
+                        quad_draw_op.border_color.g,
+                        quad_draw_op.border_color.b,
+                        quad_draw_op.border_color.a,
+                    )),
+            );
+            canvas.draw(
+                &graphics::Quad,
+                graphics::DrawParam::new()
+                    .dest(back_rect.point())
+                    .scale(back_rect.size())
                     .color(graphics::Color::from_rgba(
                         quad_draw_op.back_color.r,
                         quad_draw_op.back_color.g,
@@ -460,7 +478,18 @@ impl Ugui {
                         if let keyboard::KeyCode::Escape = keycode {
                             ctx.request_quit();
                         }
-                    }
+                    },
+                    WindowEvent::Resized(size) => {
+                        // Update this top-level window's dimensions
+                        let top_level_window = window_from_hwnd_mut(&mut self.windows, hwnd);
+                        top_level_window.rect = Rect {
+                            x: 0.0,
+                            y: 0.0,
+                            w: size.width as f32 + 1.0,
+                            h: size.height as f32 + 1.0,
+                        };
+                        self.invalidate_hwnd(hwnd);
+                    },
                     _ => {}
                 },
                 Event::MainEventsCleared => {
@@ -494,34 +523,6 @@ impl Ugui {
             }
         });
 
-        // let sdl_context = sdl2::init().unwrap();
-        // let video_subsystem = sdl_context.video().unwrap();
-        //
-        // let _ttf_context = sdl2::ttf::init().unwrap();
-        //
-        // let top_level_window = window_from_hwnd(&self.windows, hwnd);
-        // let mut window_builder = &mut video_subsystem.window(
-        //     &top_level_window.caption,
-        //     top_level_window.rect.w as u32,
-        //     top_level_window.rect.h as u32,
-        // );
-        //
-        // window_builder
-        //     .position(
-        //         top_level_window.rect.x as i32,
-        //         top_level_window.rect.y as i32,
-        //     )
-        //     .opengl()
-        //     .resizable();
-        //
-        // if top_level_window.rect.x == CENTER_SCREEN && top_level_window.rect.y == CENTER_SCREEN {
-        //     window_builder = window_builder.position_centered();
-        // }
-        //
-        // let sdl_window = window_builder.build().unwrap();
-        // self.canvas = Some(sdl_window.into_canvas().present_vsync().build().unwrap());
-        // let mut event_pump = sdl_context.event_pump().unwrap();
-        //
         // let mut last_mouse_position = Point::default();
         //
         // 'running: loop {
