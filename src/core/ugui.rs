@@ -15,13 +15,14 @@ use crate::WNDPROC;
 use flagset::FlagSet;
 
 use crate::gfx::painter::Painter;
-use ggez::event;
 use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent};
 use ggez::event::ControlFlow;
 use ggez::glam::Vec2;
 use ggez::graphics::{self, Canvas, DrawMode, FillOptions};
 use ggez::input::keyboard;
+use ggez::mint::Point2;
 use ggez::GameResult;
+use ggez::{event, mint, Context};
 
 /// An application, roughly equivalent to a top-level window with a message loop and many child windows.
 #[derive(Default)]
@@ -89,43 +90,39 @@ impl Ugui {
         // self.canvas.as_mut().unwrap().set_clip_rect(prev_clip);
     }
 
-    fn process_draw_ops(&mut self, canvas: &mut Canvas) {
-        for quad_draw_op in &self.quad_draw_ops {
-            let rect = quad_draw_op.rect;
-            let back_color = quad_draw_op.back_color;
-            let border_color = quad_draw_op.border_color;
-            let border_size = quad_draw_op.border_size;
+    fn process_dirty_rects(&mut self) {
+        for rect in self.dirty_rects.clone() {
+            self.paint_rect(rect);
+        }
+        self.dirty_rects.clear();
+    }
+    fn process_draw_ops(&mut self, ctx: &mut Context) {
+        let mut canvas = Canvas::from_frame(ctx, None);
 
-            let border_rect = rect.inflate(border_size);
-            let border_rect_ggez =
-                graphics::Rect::new(border_rect.x, border_rect.y, border_rect.w, border_rect.h);
-            let rect_ggez = graphics::Rect::new(rect.x, rect.y, rect.w, rect.h);
-            canvas.draw(
-                &graphics::Quad,
-                graphics::DrawParam::new()
-                    .dest(border_rect_ggez.point())
-                    .scale(border_rect_ggez.size())
-                    .color(graphics::Color::from_rgba(
-                        border_color.r,
-                        border_color.g,
-                        border_color.b,
-                        border_color.a,
-                    )),
+        for quad_draw_op in &self.quad_draw_ops {
+            println!("{:?}", quad_draw_op);
+
+            let rect = graphics::Rect::new(
+                quad_draw_op.rect.x,
+                quad_draw_op.rect.y,
+                quad_draw_op.rect.w,
+                quad_draw_op.rect.h,
             );
             canvas.draw(
                 &graphics::Quad,
                 graphics::DrawParam::new()
-                    .dest(rect_ggez.point())
-                    .scale(rect_ggez.size())
+                    .dest(rect.point())
+                    .scale(rect.size())
                     .color(graphics::Color::from_rgba(
-                        back_color.r,
-                        back_color.g,
-                        back_color.b,
-                        back_color.a,
+                        quad_draw_op.back_color.r,
+                        quad_draw_op.back_color.g,
+                        quad_draw_op.back_color.b,
+                        quad_draw_op.back_color.a,
                     )),
             );
         }
         self.quad_draw_ops.clear();
+        canvas.finish(ctx).unwrap();
     }
 }
 
@@ -470,11 +467,6 @@ impl Ugui {
                     ctx.time.tick();
                     ctx.gfx.begin_frame().unwrap();
 
-                    let mut canvas = graphics::Canvas::from_frame(
-                        ctx,
-                        graphics::Color::from([0.0, 0.0, 0.0, 0.0]),
-                    );
-
                     for (hwnd, message) in self.message_queue.clone() {
                         // Paint messages should never arrive in the message queue, since they're always directly sent as part of dirty rect processor
                         assert_ne!(message, Message::Paint);
@@ -482,19 +474,15 @@ impl Ugui {
                     }
                     self.message_queue.clear();
 
-                    // Repaint all dirty rects
-                    for rect in self.dirty_rects.clone() {
-                        self.paint_rect(rect);
-                    }
-                    self.dirty_rects.clear();
+                    // Repaint all dirty rects, which generates drawing operations
+                    self.process_dirty_rects();
 
-                    self.process_draw_ops(&mut canvas);
+                    // Process the drawing operations
+                    self.process_draw_ops(ctx);
 
-                    canvas.finish(ctx).unwrap();
                     ctx.gfx.end_frame().unwrap();
 
                     // Update phase
-
                     ctx.mouse.reset_delta();
                     ctx.keyboard.save_keyboard_state();
                     ctx.mouse.save_mouse_state();
