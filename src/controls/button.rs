@@ -7,6 +7,7 @@ use flagset::FlagSet;
 
 use crate::gfx::styles::{ Styles};
 use std::collections::HashMap;
+use crate::gfx::alignment::Alignment;
 use crate::gfx::color::Color;
 use crate::gfx::painter::Painter;
 
@@ -33,7 +34,7 @@ pub const BUTTON_CLICK: u64 = 50;
 pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     let rect = ugui.get_window_rect(hwnd);
     let mut state: Option<ButtonState> = None;
-    if let Some(data) = ugui.get_udata(hwnd) {
+    if let Some(data) = ugui.get_data(hwnd) {
         state = Some(*(data.downcast::<ButtonState>().unwrap()));
     }
 
@@ -48,11 +49,11 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 state.visual_state = VisualState::Normal;
             }
 
-            ugui.set_udata(hwnd, Some(Box::new(state)));
+            ugui.set_data(hwnd, Some(Box::new(state)));
         }
         Message::LmbDown => {
             state.as_mut().unwrap().visual_state = VisualState::Active;
-            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+            ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
             ugui.capture_mouse(hwnd);
             ugui.send_message(ugui.root_hwnd(), Message::User(hwnd, BUTTON_CLICK));
@@ -63,7 +64,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 state.as_mut().unwrap().visual_state = VisualState::Hover;
             }
-            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+            ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
             ugui.uncapture_mouse(hwnd);
         }
@@ -73,7 +74,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 state.as_mut().unwrap().visual_state = VisualState::Hover;
             }
-            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+            ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
         }
         Message::MouseLeave => {
@@ -82,7 +83,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 state.as_mut().unwrap().visual_state = VisualState::Normal;
             }
-            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+            ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
         }
         Message::Paint => {
@@ -112,6 +113,7 @@ pub fn button_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 colors[&state.unwrap().visual_state].1,
                 1.0,
             );
+            ugui.paint_text(&ugui.get_caption(hwnd), rect, Color::rgb(0, 0, 0), Alignment::Center, Alignment::Center, 11.0, 4.0);
         }
         _ => {}
     }

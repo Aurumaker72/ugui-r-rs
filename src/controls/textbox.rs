@@ -35,7 +35,7 @@ pub fn textbox_style() -> FlagSet<Styles> {
 pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     let rect = ugui.get_window_rect(hwnd);
     let mut state: Option<TextboxState> = None;
-    if let Some(data) = ugui.get_udata(hwnd) {
+    if let Some(data) = ugui.get_data(hwnd) {
         state = Some(*(data.downcast::<TextboxState>().unwrap()));
     }
 
@@ -50,17 +50,17 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 state.visual_state = VisualState::Normal;
             }
 
-            ugui.set_udata(hwnd, Some(Box::new(state)));
+            ugui.set_data(hwnd, Some(Box::new(state)));
         }
         Message::Focus => {
             state.as_mut().unwrap().visual_state = VisualState::Active;
             ugui.invalidate_rect(rect);
-            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+            ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
         }
         Message::Unfocus => {
             state.as_mut().unwrap().visual_state = VisualState::Normal;
             ugui.invalidate_rect(rect);
-            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+            ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
         }
         Message::MouseMove => {
             // TODO: Caret control
@@ -69,14 +69,14 @@ pub fn textbox_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             if state.as_mut().unwrap().visual_state == VisualState::Normal {
                 state.as_mut().unwrap().visual_state = VisualState::Hover;
                 ugui.invalidate_rect(rect);
-                ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+                ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
             }
         }
         Message::MouseLeave => {
             if state.as_mut().unwrap().visual_state == VisualState::Hover {
                 state.as_mut().unwrap().visual_state = VisualState::Normal;
                 ugui.invalidate_rect(rect);
-                ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+                ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
             }
         }
         Message::LmbDown => {

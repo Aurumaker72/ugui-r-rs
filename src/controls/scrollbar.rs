@@ -27,9 +27,9 @@ pub fn scrollbar_style() -> FlagSet<Styles> {
     Styles::Visible | Styles::Enabled | Styles::Focusable
 }
 pub fn scrollbar_set(ugui: &mut Ugui, hwnd: HWND, size: f32, value: f32) {
-    if let Some(data) = ugui.get_udata(hwnd) {
+    if let Some(data) = ugui.get_data(hwnd) {
         let state = *(data.downcast::<ScrollbarState>().unwrap());
-        ugui.set_udata(
+        ugui.set_data(
             hwnd,
             Some(Box::new(ScrollbarState {
                 size,
@@ -41,7 +41,7 @@ pub fn scrollbar_set(ugui: &mut Ugui, hwnd: HWND, size: f32, value: f32) {
     }
 }
 pub fn scrollbar_get_value(ugui: &Ugui, hwnd: HWND) -> Option<f32> {
-    if let Some(data) = ugui.get_udata(hwnd) {
+    if let Some(data) = ugui.get_data(hwnd) {
         return Some((*(data.downcast::<ScrollbarState>().unwrap())).value);
     }
     None
@@ -61,7 +61,7 @@ pub const SCROLLBAR_CHANGED: u64 = 53;
 pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
     let rect = ugui.get_window_rect(hwnd);
     let mut state: Option<ScrollbarState> = None;
-    if let Some(data) = ugui.get_udata(hwnd) {
+    if let Some(data) = ugui.get_data(hwnd) {
         state = Some(*(data.downcast::<ScrollbarState>().unwrap()));
     }
 
@@ -76,7 +76,7 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 state.visual_state = VisualState::Normal;
             }
 
-            ugui.set_udata(hwnd, Some(Box::new(state)));
+            ugui.set_data(hwnd, Some(Box::new(state)));
         }
         Message::LmbDown => {
             let rect = ugui.get_window_rect(hwnd);
@@ -85,7 +85,7 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             state.as_mut().unwrap().visual_state = VisualState::Active;
             state.as_mut().unwrap().drag_start_diff = state.unwrap().value - (pos.y / rect.h);
 
-            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+            ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
             ugui.capture_mouse(hwnd);
             ugui.invalidate_rect(rect);
         }
@@ -95,7 +95,7 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 state.as_mut().unwrap().visual_state = VisualState::Hover;
             }
-            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+            ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
             ugui.uncapture_mouse(hwnd);
             ugui.invalidate_rect(rect);
         }
@@ -105,7 +105,7 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 state.as_mut().unwrap().visual_state = VisualState::Hover;
             }
-            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+            ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
         }
         Message::MouseLeave => {
@@ -114,7 +114,7 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
             } else {
                 state.as_mut().unwrap().visual_state = VisualState::Normal;
             }
-            ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+            ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
             ugui.invalidate_rect(rect);
         }
         Message::MouseMove => {
@@ -125,7 +125,7 @@ pub fn scrollbar_proc(ugui: &mut Ugui, hwnd: HWND, message: Message) -> u64 {
                 let value = pos.y / rect.h;
                 state.as_mut().unwrap().value =
                     (value + state.unwrap().drag_start_diff).clamp(0.0, 1.0);
-                ugui.set_udata(hwnd, Some(Box::new(state.unwrap())));
+                ugui.set_data(hwnd, Some(Box::new(state.unwrap())));
                 ugui.send_message(ugui.root_hwnd(), Message::User(hwnd, SCROLLBAR_CHANGED));
                 ugui.invalidate_hwnd(hwnd);
             }

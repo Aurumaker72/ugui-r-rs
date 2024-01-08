@@ -3,7 +3,7 @@ use crate::core::messages::Message;
 use crate::core::util::*;
 use crate::gfx::alignment::Alignment;
 use crate::gfx::color::Color;
-use crate::gfx::drawop::QuadDrawOp;
+use crate::gfx::drawop::{QuadDrawOp, TextDrawOp};
 use crate::gfx::point::Point;
 use crate::gfx::rect::Rect;
 use crate::gfx::styles::Styles;
@@ -18,7 +18,9 @@ use crate::gfx::painter::Painter;
 use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent};
 use ggez::event::ControlFlow;
 use ggez::glam::Vec2;
-use ggez::graphics::{self, Canvas, DrawMode, FillOptions};
+use ggez::graphics::{
+    self, Canvas, DrawMode, FillOptions, PxScale, Text, TextAlign, TextFragment, TextLayout,
+};
 use ggez::input::keyboard;
 use ggez::mint::Point2;
 use ggez::GameResult;
@@ -40,6 +42,8 @@ pub struct Ugui {
     mouse_state: MouseState,
     /// A list of quad drawing operations
     quad_draw_ops: Vec<QuadDrawOp>,
+    /// A list of text drawing operations
+    text_draw_ops: Vec<TextDrawOp>,
 }
 impl Painter for Ugui {
     fn paint_quad(&mut self, rect: Rect, back_color: Color, border_color: Color, border_size: f32) {
@@ -58,9 +62,18 @@ impl Painter for Ugui {
         color: Color,
         horizontal_alignment: Alignment,
         vertical_alignment: Alignment,
+        size: f32,
         line_height: f32,
     ) {
-        todo!()
+        self.text_draw_ops.push(TextDrawOp {
+            color,
+            text: text.to_string(),
+            rect,
+            h_align: horizontal_alignment,
+            v_align: vertical_alignment,
+            size,
+            line_height,
+        });
     }
 }
 
@@ -100,8 +113,6 @@ impl Ugui {
         let mut canvas = Canvas::from_frame(ctx, None);
 
         for quad_draw_op in &self.quad_draw_ops {
-            println!("{:?}", quad_draw_op);
-
             let back_rect = graphics::Rect::new(
                 quad_draw_op.rect.x + quad_draw_op.border_size,
                 quad_draw_op.rect.y + quad_draw_op.border_size,
@@ -140,6 +151,44 @@ impl Ugui {
             );
         }
         self.quad_draw_ops.clear();
+
+        for text_draw_op in self.text_draw_ops.clone() {
+            let mut text = Text::new(TextFragment {
+                text: text_draw_op.text,
+                color: Some(graphics::Color::from_rgba(
+                    text_draw_op.color.r,
+                    text_draw_op.color.g,
+                    text_draw_op.color.b,
+                    text_draw_op.color.a,
+                )),
+                scale: Some(PxScale::from(text_draw_op.size)),
+                ..Default::default()
+            });
+            text.set_bounds(Vec2::new(text_draw_op.rect.w, text_draw_op.rect.h))
+                .set_layout(TextLayout {
+                    h_align: TextAlign::Begin,
+                    v_align: TextAlign::Begin,
+                });
+
+            let size = text.measure(ctx).unwrap();
+
+            let x = match text_draw_op.h_align {
+                Alignment::Start => text_draw_op.rect.x,
+                Alignment::End => text_draw_op.rect.right() - size.x,
+                _ => text_draw_op.rect.x + text_draw_op.rect.w / 2.0 - size.x / 2.0,
+            };
+            let y = match text_draw_op.v_align {
+                Alignment::Start => text_draw_op.rect.y,
+                Alignment::End => text_draw_op.rect.bottom() - size.y,
+                _ => text_draw_op.rect.y + text_draw_op.rect.h / 2.0 - size.y / 2.0,
+            };
+            canvas.draw(
+                &text,
+                graphics::DrawParam::from([x, y]).color(graphics::Color::WHITE),
+            );
+        }
+        self.text_draw_ops.clear();
+
         canvas.finish(ctx).unwrap();
     }
 }
@@ -379,25 +428,25 @@ impl Ugui {
         window_from_hwnd(&self.windows, hwnd).styles
     }
 
-    /// Gets a window's user data
+    /// Gets a window's data
     ///
     /// # Arguments
     ///
     /// * `hwnd`: The window's handle
     ///
     /// returns: Option<Box<dyn Any>> The user data associated with the window
-    pub fn get_udata(&self, hwnd: HWND) -> Option<Box<dyn Value>> {
+    pub fn get_data(&self, hwnd: HWND) -> Option<Box<dyn Value>> {
         window_from_hwnd(&self.windows, hwnd).user_data.clone()
     }
 
-    /// Sets a window's user data
+    /// Sets a window's data
     ///
     /// # Arguments
     ///
     /// * `hwnd`: The window's handle
     /// * `value`: The desired user data
     ///
-    pub fn set_udata(&mut self, hwnd: HWND, value: Option<Box<dyn Value>>) {
+    pub fn set_data(&mut self, hwnd: HWND, value: Option<Box<dyn Value>>) {
         window_from_hwnd_mut(&mut self.windows, hwnd).user_data = value;
     }
 
@@ -417,6 +466,16 @@ impl Ugui {
     /// * `hwnd`: The window handle releasing the mouse capture
     pub fn uncapture_mouse(&mut self, _hwnd: HWND) {
         self.captured_hwnd = None
+    }
+
+    /// Gets a window's caption
+    ///
+    /// # Arguments
+    ///
+    /// * `hwnd`: The window's handle
+    pub fn get_caption(&self, hwnd: HWND) -> String {
+        let window = window_from_hwnd(&self.windows, hwnd);
+        window.caption.clone()
     }
 
     /// Sets a window's caption
@@ -478,7 +537,7 @@ impl Ugui {
                         if let keyboard::KeyCode::Escape = keycode {
                             ctx.request_quit();
                         }
-                    },
+                    }
                     WindowEvent::Resized(size) => {
                         // Update this top-level window's dimensions
                         let top_level_window = window_from_hwnd_mut(&mut self.windows, hwnd);
@@ -489,7 +548,7 @@ impl Ugui {
                             h: size.height as f32 + 1.0,
                         };
                         self.invalidate_hwnd(hwnd);
-                    },
+                    }
                     _ => {}
                 },
                 Event::MainEventsCleared => {
