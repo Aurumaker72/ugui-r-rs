@@ -523,8 +523,6 @@ impl Ugui {
 
             *control_flow = ControlFlow::Poll;
 
-            let mut last_mouse_position = Point::default();
-
             event::process_event(ctx, &mut event);
             match event {
                 Event::WindowEvent { event, .. } => match event {
@@ -565,13 +563,13 @@ impl Ugui {
                             self.message_queue.push((captured_hwnd, Message::MouseMove));
                             // 2. Send MouseEnter/Leave based solely off of its own client rect
                             if self.mouse_state.pos.inside(captured_window.rect)
-                                && !last_mouse_position.inside(captured_window.rect)
+                                && !self.mouse_state.last_pos.inside(captured_window.rect)
                             {
                                 self.message_queue
                                     .push((captured_hwnd, Message::MouseEnter));
                             }
                             if !self.mouse_state.pos.inside(captured_window.rect)
-                                && last_mouse_position.inside(captured_window.rect)
+                                && self.mouse_state.last_pos.inside(captured_window.rect)
                             {
                                 self.message_queue
                                     .push((captured_hwnd, Message::MouseLeave));
@@ -583,7 +581,7 @@ impl Ugui {
                                 // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
                                 self.message_queue.push((control.hwnd, Message::MouseMove));
                                 if let Some(prev_control) =
-                                    window_at_point(&self.windows, last_mouse_position)
+                                    window_at_point(&self.windows, self.mouse_state.last_pos)
                                 {
                                     if control.hwnd != prev_control.hwnd {
                                         self.message_queue
@@ -594,7 +592,7 @@ impl Ugui {
                                 }
                             }
                         }
-                        last_mouse_position = self.mouse_state.pos;
+                        self.mouse_state.last_pos = self.mouse_state.pos;
                     }
                     WindowEvent::MouseInput { button, state, .. } => match button {
                         MouseButton::Left => {
@@ -761,31 +759,5 @@ impl Ugui {
         //             _ => {}
         //         }
         //     }
-        //
-        //     for (hwnd, message) in self.message_queue.clone() {
-        //         // Paint messages should never arrive in the message queue, since they're always directly sent as part of dirty rect processor
-        //         assert_ne!(message, Message::Paint);
-        //         self.send_message(hwnd, message);
-        //     }
-        //
-        //     self.message_queue.clear();
-        //
-        //     // Repaint all controls inside each dirty rect
-        //     for rect in self.dirty_rects.clone() {
-        //         self.paint_rect(rect);
-        //     }
-        //
-        //     // We only need to perform expensive canvas swap if something was actually repainted
-        //     if !self.dirty_rects.is_empty() {
-        //         self.canvas.as_mut().unwrap().present();
-        //     }
-        //
-        //     self.dirty_rects.clear();
-        // }
-
-        // FIXME: Destroy windows on exit!
-        // for window in self.windows.iter().rev() {
-        //     self.destroy_window(window.hwnd);
-        // }
     }
 }
