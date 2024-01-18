@@ -15,8 +15,8 @@ use crate::WNDPROC;
 use flagset::FlagSet;
 
 use crate::gfx::painter::Painter;
-use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent};
-use ggez::event::ControlFlow;
+use ggez::event::winit_event::{ElementState, Event, KeyboardInput, WindowEvent};
+use ggez::event::{ControlFlow, MouseButton};
 use ggez::glam::Vec2;
 use ggez::graphics::{
     self, Canvas, DrawMode, FillOptions, PxScale, Text, TextAlign, TextFragment, TextLayout,
@@ -113,6 +113,7 @@ impl Ugui {
         let mut canvas = Canvas::from_frame(ctx, None);
 
         for quad_draw_op in &self.quad_draw_ops {
+            println!("sali");
             let back_rect = graphics::Rect::new(
                 quad_draw_op.rect.x + quad_draw_op.border_size,
                 quad_draw_op.rect.y + quad_draw_op.border_size,
@@ -522,6 +523,8 @@ impl Ugui {
 
             *control_flow = ControlFlow::Poll;
 
+            let mut last_mouse_position = Point::default();
+
             event::process_event(ctx, &mut event);
             match event {
                 Event::WindowEvent { event, .. } => match event {
@@ -549,6 +552,62 @@ impl Ugui {
                         };
                         self.invalidate_hwnd(hwnd);
                     }
+                    WindowEvent::CursorMoved {position, ..} => {
+                        self.mouse_state.pos = Point {
+                            x: position.x as f32,
+                            y: position.y as f32,
+                        };
+
+                        // If we have a captured control, it gets special treatment
+                        if let Some(captured_hwnd) = self.captured_hwnd {
+                            let captured_window = window_from_hwnd(&self.windows, captured_hwnd);
+                            // 1. Send MouseMove unconditionally
+                            self.message_queue.push((captured_hwnd, Message::MouseMove));
+                            // 2. Send MouseEnter/Leave based solely off of its own client rect
+                            if self.mouse_state.pos.inside(captured_window.rect)
+                                && !last_mouse_position.inside(captured_window.rect)
+                            {
+                                self.message_queue
+                                    .push((captured_hwnd, Message::MouseEnter));
+                            }
+                            if !self.mouse_state.pos.inside(captured_window.rect)
+                                && last_mouse_position.inside(captured_window.rect)
+                            {
+                                self.message_queue
+                                    .push((captured_hwnd, Message::MouseLeave));
+                            }
+                        } else {
+                            if let Some(control) =
+                                window_at_point(&self.windows, self.mouse_state.pos)
+                            {
+                                // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
+                                self.message_queue.push((control.hwnd, Message::MouseMove));
+                                if let Some(prev_control) =
+                                    window_at_point(&self.windows, last_mouse_position)
+                                {
+                                    if control.hwnd != prev_control.hwnd {
+                                        self.message_queue
+                                            .push((control.hwnd, Message::MouseEnter));
+                                        self.message_queue
+                                            .push((prev_control.hwnd, Message::MouseLeave));
+                                    }
+                                }
+                            }
+                        }
+                        last_mouse_position = self.mouse_state.pos;
+                    }
+                    WindowEvent::MouseInput {button, state, ..} => match button {
+                        MouseButton::Left => {
+                            self.mouse_state.lmb = state == ElementState::Pressed;
+                        }
+                        MouseButton::Middle => {
+                            self.mouse_state.mmb = state == ElementState::Pressed;
+                        }
+                        MouseButton::Right => {
+                            self.mouse_state.rmb = state == ElementState::Pressed;
+                        }
+                        _ => {}
+                    },
                     _ => {}
                 },
                 Event::MainEventsCleared => {
@@ -582,7 +641,6 @@ impl Ugui {
             }
         });
 
-        // let mut last_mouse_position = Point::default();
         //
         // 'running: loop {
         //     self.mouse_state.pos =
@@ -660,47 +718,6 @@ impl Ugui {
         //                 {
         //                     self.message_queue.push((control.hwnd, Message::LmbUp));
         //                 }
-        //             }
-        //             Event::MouseMotion { x, y, .. } => {
-        //                 // If we have a captured control, it gets special treatment
-        //                 if let Some(captured_hwnd) = self.captured_hwnd {
-        //                     let captured_window = window_from_hwnd(&self.windows, captured_hwnd);
-        //                     // 1. Send MouseMove unconditionally
-        //                     self.message_queue.push((captured_hwnd, Message::MouseMove));
-        //
-        //                     // 2. Send MouseEnter/Leave based solely off of its own client rect
-        //                     if self.mouse_state.pos.inside(captured_window.rect)
-        //                         && !last_mouse_position.inside(captured_window.rect)
-        //                     {
-        //                         self.message_queue
-        //                             .push((captured_hwnd, Message::MouseEnter));
-        //                     }
-        //                     if !self.mouse_state.pos.inside(captured_window.rect)
-        //                         && last_mouse_position.inside(captured_window.rect)
-        //                     {
-        //                         self.message_queue
-        //                             .push((captured_hwnd, Message::MouseLeave));
-        //                     }
-        //                 } else {
-        //                     if let Some(control) =
-        //                         window_at_point(&self.windows, self.mouse_state.pos)
-        //                     {
-        //                         // We have no captured control, so it's safe to regularly send MouseMove to the window under the mouse
-        //                         self.message_queue.push((control.hwnd, Message::MouseMove));
-        //
-        //                         if let Some(prev_control) =
-        //                             window_at_point(&self.windows, last_mouse_position)
-        //                         {
-        //                             if control.hwnd != prev_control.hwnd {
-        //                                 self.message_queue
-        //                                     .push((control.hwnd, Message::MouseEnter));
-        //                                 self.message_queue
-        //                                     .push((prev_control.hwnd, Message::MouseLeave));
-        //                             }
-        //                         }
-        //                     }
-        //                 }
-        //                 last_mouse_position = self.mouse_state.pos;
         //             }
         //             Event::Window { win_event, .. } => match win_event {
         //                 WindowEvent::SizeChanged(w, h) => {
