@@ -623,6 +623,44 @@ impl Ugui {
                         MouseButton::Left => {
                             self.mouse_state.lmb = state == ElementState::Pressed;
                             self.mouse_state.lmb_down_pos = self.mouse_state.pos;
+
+                            if self.mouse_state.lmb {
+                                if let Some(control) =
+                                    window_at_point(&self.windows, self.mouse_state.lmb_down_pos)
+                                {
+                                    // If focused HWNDs differ, we unfocus the old one
+                                    if self.focused_hwnd.is_some_and(|x| x != control.hwnd) {
+                                        if window_from_hwnd(
+                                            &self.windows,
+                                            self.focused_hwnd.unwrap(),
+                                        )
+                                        .styles
+                                        .contains(Styles::Focusable)
+                                        {
+                                            self.message_queue.push((
+                                                self.focused_hwnd.unwrap(),
+                                                Message::Unfocus,
+                                            ));
+                                        }
+                                    }
+                                    self.focused_hwnd = Some(control.hwnd);
+                                    self.message_queue.push((control.hwnd, Message::LmbDown));
+                                    if window_from_hwnd(&self.windows, control.hwnd)
+                                        .styles
+                                        .contains(Styles::Focusable)
+                                    {
+                                        self.message_queue.push((control.hwnd, Message::Focus));
+                                    }
+                                }
+                            } else {
+                                // Following assumption is made: We can't have up without down happening prior to it.
+                                // The control at the mouse down position thus needs to know if the mouse was released afterwards, either inside or outside of its client area.
+                                if let Some(control) =
+                                    window_at_point(&self.windows, self.mouse_state.lmb_down_pos)
+                                {
+                                    self.message_queue.push((control.hwnd, Message::LmbUp));
+                                }
+                            }
                         }
                         MouseButton::Middle => {
                             self.mouse_state.mmb = state == ElementState::Pressed;
@@ -665,98 +703,6 @@ impl Ugui {
             }
         });
 
-        //
-        // 'running: loop {
-        //     self.mouse_state.pos =
-        //         Point::new_i(event_pump.mouse_state().x(), event_pump.mouse_state().y());
-        //
-        //     for event in event_pump.poll_iter() {
-        //         match event {
-        //             Event::Quit { .. } => break 'running,
-        //             Event::MouseButtonDown { mouse_btn, .. } => {
-        //                 match mouse_btn {
-        //                     MouseButton::Left => {
-        //                         self.mouse_state.lmb = true;
-        //                     }
-        //                     MouseButton::Middle => {
-        //                         self.mouse_state.mmb = true;
-        //                     }
-        //                     MouseButton::Right => {
-        //                         self.mouse_state.rmb = true;
-        //                     }
-        //                     _ => {}
-        //                 }
-        //
-        //                 if mouse_btn != MouseButton::Left {
-        //                     break;
-        //                 }
-        //
-        //                 self.mouse_state.lmb_down_pos = self.mouse_state.pos;
-        //
-        //                 if let Some(control) =
-        //                     window_at_point(&self.windows, self.mouse_state.lmb_down_pos)
-        //                 {
-        //                     // If focused HWNDs differ, we unfocus the old one
-        //                     if self.focused_hwnd.is_some_and(|x| x != control.hwnd) {
-        //                         if window_from_hwnd(&self.windows, self.focused_hwnd.unwrap())
-        //                             .styles
-        //                             .contains(Styles::Focusable)
-        //                         {
-        //                             self.message_queue
-        //                                 .push((self.focused_hwnd.unwrap(), Message::Unfocus));
-        //                         }
-        //                     }
-        //
-        //                     self.focused_hwnd = Some(control.hwnd);
-        //                     self.message_queue.push((control.hwnd, Message::LmbDown));
-        //
-        //                     if window_from_hwnd(&self.windows, control.hwnd)
-        //                         .styles
-        //                         .contains(Styles::Focusable)
-        //                     {
-        //                         self.message_queue.push((control.hwnd, Message::Focus));
-        //                     }
-        //                 }
-        //             }
-        //             Event::MouseButtonUp { mouse_btn, .. } => {
-        //                 match mouse_btn {
-        //                     MouseButton::Left => {
-        //                         self.mouse_state.lmb = true;
-        //                     }
-        //                     MouseButton::Middle => {
-        //                         self.mouse_state.mmb = true;
-        //                     }
-        //                     MouseButton::Right => {
-        //                         self.mouse_state.rmb = true;
-        //                     }
-        //                     _ => {}
-        //                 }
-        //
-        //                 if mouse_btn != MouseButton::Left {
-        //                     break;
-        //                 }
-        //                 // Following assumption is made: We can't have up without down happening prior to it.
-        //                 // The control at the mouse down position thus needs to know if the mouse was released afterwards, either inside or outside of its client area.
-        //                 if let Some(control) =
-        //                     window_at_point(&self.windows, self.mouse_state.lmb_down_pos)
-        //                 {
-        //                     self.message_queue.push((control.hwnd, Message::LmbUp));
-        //                 }
-        //             }
-        //             Event::Window { win_event, .. } => match win_event {
-        //                 WindowEvent::SizeChanged(w, h) => {
-        //                     // Update this top-level window's dimensions
-        //                     let top_level_window = window_from_hwnd_mut(&mut self.windows, hwnd);
-        //                     top_level_window.rect = Rect {
-        //                         x: 0.0,
-        //                         y: 0.0,
-        //                         w: w as f32 + 2.0,
-        //                         h: h as f32 + 2.0,
-        //                     };
-        //                     self.invalidate_hwnd(hwnd);
-        //                 }
-        //                 _ => {}
-        //             },
         //             Event::KeyDown { keycode, .. } => {
         //                 if keycode.is_none() {
         //                     break;
