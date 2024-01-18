@@ -36,4 +36,15 @@ pub trait Painter {
         size: f32,
         line_height: f32,
     );
+
+    /// Pushes a clipping region to the clip stack
+    ///
+    /// # Arguments
+    ///
+    /// * `rect`: The clipping region
+    fn push_clip(&mut self, rect: Rect);
+
+
+    /// Pops the topmost clipping region off the clip stack
+    fn pop_clip(&mut self);
 }

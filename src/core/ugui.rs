@@ -9,7 +9,6 @@ use crate::gfx::rect::Rect;
 use crate::gfx::styles::Styles;
 use crate::input::mouse::MouseState;
 use crate::window::Window;
-use crate::CENTER_SCREEN;
 use crate::HWND;
 use crate::WNDPROC;
 use flagset::FlagSet;
@@ -44,11 +43,14 @@ pub struct Ugui {
     quad_draw_ops: Vec<QuadDrawOp>,
     /// A list of text drawing operations
     text_draw_ops: Vec<TextDrawOp>,
+    /// A stack of clip rectangles
+    clip_rects: Vec<Rect>,
 }
 impl Painter for Ugui {
     fn paint_quad(&mut self, rect: Rect, back_color: Color, border_color: Color, border_size: f32) {
         self.quad_draw_ops.push(QuadDrawOp {
             rect,
+            clip_rect: self.clip_rects.last().copied(),
             back_color,
             border_color,
             border_size,
@@ -69,24 +71,27 @@ impl Painter for Ugui {
             color,
             text: text.to_string(),
             rect,
+            clip_rect: self.clip_rects.last().copied(),
             h_align: horizontal_alignment,
             v_align: vertical_alignment,
             size,
             line_height,
         });
     }
+    fn push_clip(&mut self, rect: Rect) {
+        self.clip_rects.push(rect);
+    }
+
+    fn pop_clip(&mut self) {
+        self.clip_rects.pop();
+    }
 }
 
 impl Ugui {
     /// Paints all controls inside a rectangle
     fn paint_rect(&mut self, rect: Rect) {
-        // let prev_clip = self.canvas.as_mut().unwrap().clip_rect().unwrap_or(
-        //     window_from_hwnd(&self.windows, self.root_hwnd())
-        //         .rect,
-        // );
-
-        // 1. Set clip region to the control bounds
-        // self.canvas.as_mut().unwrap().set_clip_rect(rect.to_sdl());
+        // 1. Clip rendering to control bounds
+        self.push_clip(rect);
 
         // 2. Repaint all controls inside the affected rect, skipping invisible ones
         let affected_windows = get_window_handles_inside_rect(&self.windows, rect);
@@ -100,7 +105,8 @@ impl Ugui {
             (window.procedure)(self, hwnd, Message::Paint);
         }
 
-        // self.canvas.as_mut().unwrap().set_clip_rect(prev_clip);
+        // 3. Pop clip
+        self.pop_clip();
     }
 
     fn process_dirty_rects(&mut self) {
@@ -113,7 +119,16 @@ impl Ugui {
         let mut canvas = Canvas::from_frame(ctx, None);
 
         for quad_draw_op in &self.quad_draw_ops {
-            println!("sali");
+            if let Some(clip_rect) = quad_draw_op.clip_rect {
+                canvas.set_scissor_rect(graphics::Rect::new(
+                    clip_rect.x,
+                    clip_rect.y,
+                    clip_rect.w,
+                    clip_rect.h,
+                ));
+            } else {
+                canvas.set_default_scissor_rect();
+            }
             let back_rect = graphics::Rect::new(
                 quad_draw_op.rect.x + quad_draw_op.border_size,
                 quad_draw_op.rect.y + quad_draw_op.border_size,
@@ -154,6 +169,16 @@ impl Ugui {
         self.quad_draw_ops.clear();
 
         for text_draw_op in self.text_draw_ops.clone() {
+            if let Some(clip_rect) = text_draw_op.clip_rect {
+                canvas.set_scissor_rect(graphics::Rect::new(
+                    clip_rect.x,
+                    clip_rect.y,
+                    clip_rect.w,
+                    clip_rect.h,
+                ));
+            } else {
+                canvas.set_default_scissor_rect();
+            }
             let mut text = Text::new(TextFragment {
                 text: text_draw_op.text,
                 color: Some(graphics::Color::from_rgba(
