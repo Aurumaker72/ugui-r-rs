@@ -552,7 +552,7 @@ impl Ugui {
                         };
                         self.invalidate_hwnd(hwnd);
                     }
-                    WindowEvent::CursorMoved {position, ..} => {
+                    WindowEvent::CursorMoved { position, .. } => {
                         self.mouse_state.pos = Point {
                             x: position.x as f32,
                             y: position.y as f32,
@@ -596,9 +596,10 @@ impl Ugui {
                         }
                         last_mouse_position = self.mouse_state.pos;
                     }
-                    WindowEvent::MouseInput {button, state, ..} => match button {
+                    WindowEvent::MouseInput { button, state, .. } => match button {
                         MouseButton::Left => {
                             self.mouse_state.lmb = state == ElementState::Pressed;
+                            self.mouse_state.lmb_down_pos = self.mouse_state.pos;
                         }
                         MouseButton::Middle => {
                             self.mouse_state.mmb = state == ElementState::Pressed;
